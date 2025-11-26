@@ -1,0 +1,55 @@
+# Compiled class files
+*.class
+
+# Maven specific files
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# Gradle specific files
+.gradle/
+build/
+!gradle-wrapper.jar
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# IntelliJ IDEA specific files
+.idea/
+*.iml
+*.iws
+out/
+
+# Eclipse specific files
+.project
+.classpath
+.settings/
+bin/
+
+# VS Code specific files
+.vscode/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Tool specific
+*.jar
+*.war
+*.ear
+
+# Spring Boot application properties
+*.yml
+
+# Test reports
+test-output/
+surefire-reports/
