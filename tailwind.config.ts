@@ -1,28 +1,36 @@
 import type { Config } from "tailwindcss";
 
+/**
+ * Theme tokens are exposed as CSS custom properties so the active theme
+ * (Queriously Dark / Scholar Light) can be swapped at runtime by toggling a
+ * class on <html>. Every token is referenced via `rgb(var(--x) / <alpha>)`
+ * so Tailwind opacity modifiers still work (`bg-surface-raised/80`).
+ */
+const rgb = (v: string) => `rgb(var(${v}) / <alpha-value>)`;
+
 const config: Config = {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
         surface: {
-          base: "#0F1117",
-          raised: "#1A1D27",
-          overlay: "#22263A",
-          border: "#2E3250",
+          base: rgb("--surface-base"),
+          raised: rgb("--surface-raised"),
+          overlay: rgb("--surface-overlay"),
+          border: rgb("--surface-border"),
         },
         text: {
-          primary: "#E8EAF2",
-          secondary: "#8B92B4",
-          muted: "#4E5578",
-          accent: "#F0A500",
+          primary: rgb("--text-primary"),
+          secondary: rgb("--text-secondary"),
+          muted: rgb("--text-muted"),
+          accent: rgb("--accent-primary"),
         },
         accent: {
-          primary: "#F0A500",
-          secondary: "#6C7AE0",
-          success: "#34D399",
-          warning: "#FBBF24",
-          error: "#F87171",
+          primary: rgb("--accent-primary"),
+          secondary: rgb("--accent-secondary"),
+          success: rgb("--accent-success"),
+          warning: rgb("--accent-warning"),
+          error: rgb("--accent-error"),
         },
         annotation: {
           yellow: "#FEF08A",
@@ -32,9 +40,9 @@ const config: Config = {
           orange: "#FED7AA",
         },
         marginalia: {
-          restatement: "#8B92B4",
+          restatement: rgb("--text-secondary"),
           assumption: "#FBBF24",
-          contradiction: "#F87171",
+          contradiction: rgb("--accent-primary"),
           connection: "#60A5FA",
           limitation: "#FB923C",
         },

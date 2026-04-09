@@ -2,38 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-/* pdfjs text layer — transparent overlay so native selection works */
-.textLayer {
-  position: absolute;
-  text-align: initial;
-  inset: 0;
-  overflow: hidden;
-  opacity: 1;
-  line-height: 1;
-  -webkit-text-size-adjust: none;
-  -moz-text-size-adjust: none;
-  text-size-adjust: none;
-  forced-color-adjust: none;
-  transform-origin: 0 0;
-  caret-color: CanvasText;
+/**
+ * Theme tokens. The palette is centered on the Queriously logo crimson
+ * (#EB0045) in both themes — only the surface and text layers invert so
+ * the brand colour stays consistent across dark and light modes.
+ *
+ * Values are raw "R G B" triplets so Tailwind's `<alpha-value>` slot can
+ * do opacity math on them (see tailwind.config.ts).
+ */
+:root,
+.theme-dark {
+  /* Queriously Dark — deep charcoal with a slight warm tint from the red */
+  --surface-base: 15 16 22;
+  --surface-raised: 26 28 36;
+  --surface-overlay: 38 40 50;
+  --surface-border: 54 57 72;
+
+  --text-primary: 241 237 235;
+  --text-secondary: 156 160 174;
+  --text-muted: 91 95 109;
+
+  --accent-primary: 235 0 69; /* logo crimson */
+  --accent-secondary: 255 77 128; /* lifted pink for hovers */
+  --accent-success: 52 211 153;
+  --accent-warning: 251 191 36;
+  --accent-error: 248 113 113;
 }
-.textLayer :is(span, br) {
-  color: transparent;
-  position: absolute;
-  white-space: pre;
-  cursor: text;
-  transform-origin: 0% 0%;
-}
-.textLayer ::selection {
-  background: rgba(240, 165, 0, 0.35);
-}
-.textLayer .endOfContent {
-  display: block;
-  position: absolute;
-  inset: 100% 0 0 0;
-  z-index: -1;
-  cursor: default;
-  user-select: none;
+
+.theme-light {
+  /* Scholar Light — warm off-white paper with the same crimson accent */
+  --surface-base: 250 247 243;
+  --surface-raised: 255 255 255;
+  --surface-overlay: 244 238 230;
+  --surface-border: 226 220 211;
+
+  --text-primary: 26 21 32;
+  --text-secondary: 90 85 96;
+  --text-muted: 154 149 159;
+
+  --accent-primary: 235 0 69;
+  --accent-secondary: 184 0 54; /* deeper wine for the lighter background */
+  --accent-success: 16 160 108;
+  --accent-warning: 184 134 11;
+  --accent-error: 200 38 50;
 }
 
 @layer base {
@@ -65,7 +76,7 @@
            focus:outline-none focus:ring-1 focus:ring-accent-primary/50;
   }
   .q-btn-primary {
-    @apply q-btn bg-accent-primary/90 text-surface-base hover:bg-accent-primary;
+    @apply q-btn bg-accent-primary text-white hover:bg-accent-secondary;
   }
   .q-input {
     @apply bg-surface-overlay border border-surface-border rounded-md px-2.5 py-1.5
@@ -74,7 +85,7 @@
   }
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling — neutral, follows surface tones */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -83,9 +94,43 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2E3250;
+  background: rgb(var(--surface-border));
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4E5578;
+  background: rgb(var(--text-muted));
+}
+
+/* pdfjs text layer — transparent overlay so native selection works */
+.textLayer {
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: hidden;
+  opacity: 1;
+  line-height: 1;
+  -webkit-text-size-adjust: none;
+  -moz-text-size-adjust: none;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+}
+.textLayer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+.textLayer ::selection {
+  background: rgb(var(--accent-primary) / 0.35);
+}
+.textLayer .endOfContent {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0 0;
+  z-index: -1;
+  cursor: default;
+  user-select: none;
 }
