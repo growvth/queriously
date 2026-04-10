@@ -34,7 +34,7 @@ type AnnotationState = {
   remove: (id: string) => Promise<void>;
 };
 
-export const useAnnotationStore = create<AnnotationState>((set, get) => ({
+export const useAnnotationStore = create<AnnotationState>((set, _get) => ({
   annotations: [],
   activeColor: HIGHLIGHT_COLORS[0].value,
 
