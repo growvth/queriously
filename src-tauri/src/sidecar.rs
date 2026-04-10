@@ -1,7 +1,6 @@
 use parking_lot::Mutex;
 use serde::Deserialize;
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
 use std::time::Duration;
@@ -25,21 +24,32 @@ struct Handshake {
 /// to the repo's `python/main.py` invoked via the system Python. Phase 4 will
 /// swap this for a PyInstaller-bundled binary (OQ-02 in the spec).
 fn sidecar_command() -> Option<Command> {
-    let repo_py = std::env::current_dir()
+    let (python_dir, repo_py) = std::env::current_dir()
         .ok()
         .and_then(|cwd| {
             // Dev mode: tauri dev runs from src-tauri/, so climb one level.
-            let candidate = cwd.join("..").join("python").join("main.py");
+            let parent = cwd.join("..");
+            let candidate = parent.join("python").join("main.py");
             if candidate.exists() {
-                Some(candidate)
-            } else {
-                let alt = cwd.join("python").join("main.py");
-                if alt.exists() { Some(alt) } else { None }
+                return Some((parent.join("python"), candidate));
             }
-        })
-        .map(PathBuf::from)?;
+            let alt_dir = cwd.join("python");
+            let alt = alt_dir.join("main.py");
+            if alt.exists() {
+                return Some((alt_dir.clone(), alt));
+            }
+            None
+        })?;
 
-    let python_bin = std::env::var("QUERIOUSLY_PYTHON").unwrap_or_else(|_| "python3".into());
+    // Prefer venv Python if it exists, then QUERIOUSLY_PYTHON env, then system python3.
+    let venv_python = python_dir.join(".venv").join("bin").join("python3");
+    let python_bin = if venv_python.exists() {
+        venv_python.to_string_lossy().into_owned()
+    } else {
+        std::env::var("QUERIOUSLY_PYTHON").unwrap_or_else(|_| "python3".into())
+    };
+
+    eprintln!("[sidecar] using python: {python_bin}");
     let mut cmd = Command::new(python_bin);
     cmd.arg(repo_py);
     cmd.stdout(Stdio::piped());
