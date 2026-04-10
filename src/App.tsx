@@ -7,6 +7,7 @@ import { RightPanel } from "./components/layout/RightPanel";
 import { Sidebar } from "./components/layout/Sidebar";
 import { StatusBar } from "./components/layout/StatusBar";
 import { TopBar } from "./components/layout/TopBar";
+import { FloatingToolbar } from "./components/pdf/FloatingToolbar";
 import { PDFViewer } from "./components/pdf/PDFViewer";
 import { usePdf } from "./hooks/usePdf";
 
@@ -69,6 +70,7 @@ function App() {
         </PanelGroup>
       </main>
       <StatusBar />
+      <FloatingToolbar />
     </div>
   );
 }
