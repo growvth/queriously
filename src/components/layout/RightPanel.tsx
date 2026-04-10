@@ -1,28 +1,16 @@
 import { FileText, MessageSquare, Quote, Sigma } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../../lib/utils";
+import { ChatPanel } from "../chat/ChatPanel";
 
 type Tab = "chat" | "equations" | "citations" | "summary";
 
-/**
- * Right-hand companion panel. Phase 1 only ships the Chat tab content
- * (in step 8); the other tabs are placeholders so the layout is stable
- * as features land progressively.
- */
 export function RightPanel() {
   const [tab, setTab] = useState<Tab>("chat");
   const tabs: { id: Tab; icon: React.ReactNode; label: string }[] = [
-    {
-      id: "chat",
-      icon: <MessageSquare className="w-4 h-4" />,
-      label: "Chat",
-    },
+    { id: "chat", icon: <MessageSquare className="w-4 h-4" />, label: "Chat" },
     { id: "equations", icon: <Sigma className="w-4 h-4" />, label: "Math" },
-    {
-      id: "citations",
-      icon: <Quote className="w-4 h-4" />,
-      label: "Citations",
-    },
+    { id: "citations", icon: <Quote className="w-4 h-4" />, label: "Citations" },
     { id: "summary", icon: <FileText className="w-4 h-4" />, label: "Summary" },
   ];
 
@@ -46,10 +34,14 @@ export function RightPanel() {
           </button>
         ))}
       </div>
-      <div className="flex-1 min-h-0 overflow-auto p-4 text-text-muted text-xs">
-        {tab === "chat"
-          ? "Chat panel coming next."
-          : "Not implemented in Phase 1."}
+      <div className="flex-1 min-h-0">
+        {tab === "chat" ? (
+          <ChatPanel />
+        ) : (
+          <div className="h-full flex items-center justify-center text-text-muted text-xs p-4">
+            Not implemented in Phase 1.
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,100 @@
+import { Send, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useChatStore } from "../../store/chatStore";
+import { usePdfStore } from "../../store/pdfStore";
+import { useChat } from "../../hooks/useChat";
+import { MessageBubble } from "./MessageBubble";
+import { ReadingModeSelector } from "./ReadingModeSelector";
+
+export function ChatPanel() {
+  const messages = useChatStore((s) => s.messages);
+  const isLoading = useChatStore((s) => s.isLoading);
+  const clearChat = useChatStore((s) => s.clearChat);
+  const paper = usePdfStore((s) => s.paper);
+  const { send } = useChat();
+  const [input, setInput] = useState("");
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom on new messages.
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  function jumpToPage(page: number) {
+    const el = document.querySelector<HTMLElement>(`[data-page="${page}"]`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const q = input.trim();
+    if (!q || isLoading || !paper) return;
+    setInput("");
+    send(q);
+  }
+
+  if (!paper) {
+    return (
+      <div className="h-full flex items-center justify-center text-text-muted text-xs p-4 text-center">
+        Open a paper to start asking questions.
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Messages */}
+      <div className="flex-1 min-h-0 overflow-auto px-3 py-4 flex flex-col gap-4">
+        {messages.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center text-text-muted text-xs text-center">
+            Ask a question about this paper.
+          </div>
+        ) : (
+          messages.map((m) => (
+            <MessageBubble key={m.id} message={m} onJumpToPage={jumpToPage} />
+          ))
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input area */}
+      <div className="shrink-0 border-t border-surface-border">
+        <ReadingModeSelector />
+        <form onSubmit={onSubmit} className="flex items-end gap-1.5 p-2">
+          <textarea
+            className="q-input flex-1 min-h-[36px] max-h-32 resize-none text-sm"
+            placeholder="Ask about this paper..."
+            rows={1}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                onSubmit(e);
+              }
+            }}
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !input.trim()}
+            className="q-btn-primary py-2 disabled:opacity-40"
+            aria-label="Send"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+          {messages.length > 0 && (
+            <button
+              type="button"
+              className="q-btn py-2 text-text-muted hover:text-accent-error"
+              onClick={clearChat}
+              title="Clear chat"
+              aria-label="Clear chat"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </form>
+      </div>
+    </div>
+  );
+}
