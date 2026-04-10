@@ -1,4 +1,3 @@
-import { readFile } from "@tauri-apps/plugin-fs";
 import { loadPdfFromBytes } from "../lib/pdfjs";
 import { api, type Paper } from "../lib/tauri";
 import { useLibraryStore } from "../store/libraryStore";
@@ -13,8 +12,9 @@ export function usePdf() {
 
   async function openPath(path: string): Promise<Paper> {
     const paper = await api.openPdf(path);
-    const bytes = await readFile(path);
-    const doc = await loadPdfFromBytes(new Uint8Array(bytes));
+    const rawBytes = await api.readPdfBytes(path);
+    const bytes = new Uint8Array(rawBytes);
+    const doc = await loadPdfFromBytes(bytes);
     setPaper(paper);
     setDoc(doc, doc.numPages);
     void refreshLibrary();

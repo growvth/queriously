@@ -108,6 +108,17 @@ pub fn delete_paper(
     Ok(())
 }
 
+/// Read raw PDF bytes from the filesystem. Used by the frontend to load PDFs
+/// from the library without needing broad FS plugin scope permissions.
+#[tauri::command]
+pub async fn read_pdf_bytes(path: String) -> Result<Vec<u8>, String> {
+    let p = PathBuf::from(&path);
+    if !p.exists() {
+        return Err(format!("file not found: {path}"));
+    }
+    std::fs::read(&p).map_err(|e| format!("failed to read {path}: {e}"))
+}
+
 fn read_paper(db: &rusqlite::Connection, id: &str) -> rusqlite::Result<Paper> {
     db.query_row(
         "SELECT id, file_path, title, authors, year, page_count,

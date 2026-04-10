@@ -29,6 +29,7 @@ pub fn run() {
             commands::pdf::open_pdf,
             commands::pdf::get_library,
             commands::pdf::delete_paper,
+            commands::pdf::read_pdf_bytes,
             commands::ai::ingest_paper,
             commands::ai::ask_question,
             commands::ai::generate_marginalia,

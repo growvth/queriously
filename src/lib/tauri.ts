@@ -39,6 +39,7 @@ export type IngestResult = {
 
 export const api = {
   openPdf: (path: string) => invoke<Paper>("open_pdf", { path }),
+  readPdfBytes: (path: string) => invoke<number[]>("read_pdf_bytes", { path }),
   getLibrary: () => invoke<Paper[]>("get_library"),
   deletePaper: (paperId: string, deleteAnnotations: boolean) =>
     invoke<void>("delete_paper", { paperId, deleteAnnotations }),
