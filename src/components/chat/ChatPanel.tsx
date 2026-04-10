@@ -16,6 +16,16 @@ export function ChatPanel() {
   const [input, setInput] = useState("");
   const [aiReady, setAiReady] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const prevPaperIdRef = useRef<string | null>(null);
+
+  // Clear chat when switching to a different paper.
+  useEffect(() => {
+    const id = paper?.id ?? null;
+    if (prevPaperIdRef.current !== null && id !== prevPaperIdRef.current) {
+      clearChat();
+    }
+    prevPaperIdRef.current = id;
+  }, [paper?.id, clearChat]);
 
   // Check sidecar health before allowing sends.
   useEffect(() => {
