@@ -1,35 +1,31 @@
-import { BookOpen, FolderKanban, Library, List } from "lucide-react";
+import { FolderKanban, Library } from "lucide-react";
 import { useState } from "react";
 import { cn } from "../../lib/utils";
 
-type Section = "library" | "toc" | "thumbs" | "sessions";
+type Section = "library" | "sessions";
 
 type Props = {
   renderLibrary?: () => React.ReactNode;
+  renderSessions?: () => React.ReactNode;
 };
 
 /**
- * Left sidebar with four sections (Library, TOC, Thumbnails, Sessions).
- * Only Library has content in Phase 1; the other sections are scaffolded
- * with empty states so the navigation is consistent and future steps can
- * drop implementations in place without touching layout code.
+ * Left sidebar with only shipped sections.
  */
-export function Sidebar({ renderLibrary }: Props) {
+export function Sidebar({ renderLibrary, renderSessions }: Props) {
   const [active, setActive] = useState<Section>("library");
 
   const tabs: { id: Section; icon: React.ReactNode; label: string }[] = [
     { id: "library", icon: <Library className="w-4 h-4" />, label: "Library" },
-    { id: "toc", icon: <List className="w-4 h-4" />, label: "Contents" },
-    {
-      id: "thumbs",
-      icon: <BookOpen className="w-4 h-4" />,
-      label: "Thumbnails",
-    },
-    {
-      id: "sessions",
-      icon: <FolderKanban className="w-4 h-4" />,
-      label: "Sessions",
-    },
+    ...(renderSessions
+      ? [
+          {
+            id: "sessions" as const,
+            icon: <FolderKanban className="w-4 h-4" />,
+            label: "Sessions",
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -57,8 +53,10 @@ export function Sidebar({ renderLibrary }: Props) {
         <div className="flex-1 min-h-0 overflow-auto">
           {active === "library" ? (
             renderLibrary?.() ?? <EmptyState label="No papers yet." />
+          ) : active === "sessions" ? (
+            renderSessions?.() ?? <EmptyState label="No sessions yet." />
           ) : (
-            <EmptyState label="Coming soon." />
+            <EmptyState label="No content." />
           )}
         </div>
       </div>

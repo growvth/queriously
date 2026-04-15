@@ -8,13 +8,47 @@ import { api } from "../lib/tauri";
  * (sidecar may still be starting).
  */
 export function useLlmConfig() {
-  const getLlmConfig = useSettingsStore((s) => s.getLlmConfig);
+  const llmModel = useSettingsStore((s) => s.llmModel);
+  const llmApiKey = useSettingsStore((s) => s.llmApiKey);
+  const llmApiKeyLoaded = useSettingsStore((s) => s.llmApiKeyLoaded);
+  const llmBaseUrl = useSettingsStore((s) => s.llmBaseUrl);
+  const setLlmApiKey = useSettingsStore((s) => s.setLlmApiKey);
+  const setLlmApiKeyLoaded = useSettingsStore((s) => s.setLlmApiKeyLoaded);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadKey() {
+      try {
+        const stored = await api.getLlmApiKey();
+        if (!cancelled) {
+          setLlmApiKey(stored ?? "");
+        }
+      } catch {
+        // Keep local memory empty; onboarding/settings can still continue.
+      } finally {
+        if (!cancelled) {
+          setLlmApiKeyLoaded(true);
+        }
+      }
+    }
+
+    loadKey();
+    return () => {
+      cancelled = true;
+    };
+  }, [setLlmApiKey, setLlmApiKeyLoaded]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function push() {
-      const config = getLlmConfig();
+      if (!llmApiKeyLoaded) return;
+      const config = {
+        model: llmModel,
+        api_key: llmApiKey || null,
+        base_url: llmBaseUrl || null,
+      };
       // Don't push the default Ollama config if user hasn't onboarded yet
       if (!config.model) return;
       try {
@@ -38,5 +72,5 @@ export function useLlmConfig() {
     return () => {
       cancelled = true;
     };
-  }, [getLlmConfig]);
+  }, [llmApiKey, llmApiKeyLoaded, llmBaseUrl, llmModel]);
 }

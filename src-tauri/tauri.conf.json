@@ -25,7 +25,15 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app"],
+    "resources": {
+      "../python/__init__.py": "python/__init__.py",
+      "../python/main.py": "python/main.py",
+      "../python/requirements.txt": "python/requirements.txt",
+      "../python/core": "python/core/",
+      "../python/models": "python/models/",
+      "../python/routers": "python/routers/"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

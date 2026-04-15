@@ -4,9 +4,15 @@ Spawned by the Rust/Tauri shell on app launch. Starts a FastAPI server on a
 free port, writes a one-line JSON handshake to stdout (so Rust can discover
 the port), then serves AI/RAG endpoints to the Tauri layer over HTTP.
 
-Kept intentionally thin in Phase 1: only /health and /version are wired.
-Ingestion, QA, marginalia, summarization, and equation endpoints land in
-later steps.
+Current routers in this branch:
+- /health, /version
+- /ingest
+- /qa
+- /marginalia/*
+- /summarize
+- /config/*
+
+Equation/citation/session synthesis endpoints are planned in later phases.
 """
 
 from __future__ import annotations

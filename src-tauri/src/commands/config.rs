@@ -3,6 +3,9 @@ use tauri::State;
 
 use crate::sidecar::{base_url, SidecarHandle};
 
+const KEYCHAIN_SERVICE: &str = "com.queriously.desktop";
+const KEYCHAIN_ACCOUNT: &str = "llm_api_key";
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LlmConfig {
     pub model: String,
@@ -14,6 +17,43 @@ pub struct LlmConfig {
 pub struct OllamaStatus {
     pub running: bool,
     pub models: Vec<String>,
+}
+
+fn keyring_entry() -> Result<keyring::Entry, String> {
+    keyring::Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT).map_err(|e| e.to_string())
+}
+
+/// Read the saved LLM API key from the OS keychain.
+#[tauri::command]
+pub fn get_llm_api_key() -> Result<Option<String>, String> {
+    let entry = keyring_entry()?;
+    match entry.get_password() {
+        Ok(value) => Ok(Some(value)),
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Save or clear the LLM API key in the OS keychain.
+#[tauri::command]
+pub fn set_llm_api_key(api_key: Option<String>) -> Result<(), String> {
+    let entry = keyring_entry()?;
+    let normalized = api_key.and_then(|s| {
+        let trimmed = s.trim().to_string();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed)
+        }
+    });
+
+    match normalized {
+        Some(value) => entry.set_password(&value).map_err(|e| e.to_string()),
+        None => match entry.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        },
+    }
 }
 
 /// Push LLM config to the Python sidecar so it takes effect at runtime.

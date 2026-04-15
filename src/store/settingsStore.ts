@@ -6,7 +6,6 @@ export type LlmProvider = "ollama" | "openai" | "anthropic" | "custom";
 const THEME_KEY = "queriously.theme";
 const PROVIDER_KEY = "queriously.llm.provider";
 const MODEL_KEY = "queriously.llm.model";
-const API_KEY_KEY = "queriously.llm.apiKey";
 const BASE_URL_KEY = "queriously.llm.baseUrl";
 const ONBOARDED_KEY = "queriously.onboarded";
 
@@ -40,6 +39,7 @@ type SettingsState = {
   llmProvider: LlmProvider;
   llmModel: string;
   llmApiKey: string;
+  llmApiKeyLoaded: boolean;
   llmBaseUrl: string;
 
   setTheme: (theme: ThemeName) => void;
@@ -48,6 +48,7 @@ type SettingsState = {
   setLlmProvider: (p: LlmProvider) => void;
   setLlmModel: (m: string) => void;
   setLlmApiKey: (k: string) => void;
+  setLlmApiKeyLoaded: (v: boolean) => void;
   setLlmBaseUrl: (u: string) => void;
   getLlmConfig: () => { model: string; api_key?: string | null; base_url?: string | null };
 };
@@ -55,13 +56,16 @@ type SettingsState = {
 export const useSettingsStore = create<SettingsState>((set, get) => {
   const theme = initialTheme();
   applyTheme(theme);
+  // Cleanup legacy storage path now that API keys are in keychain.
+  window.localStorage.removeItem("queriously.llm.apiKey");
 
   return {
     theme,
     onboarded: window.localStorage.getItem(ONBOARDED_KEY) === "true",
     llmProvider: (window.localStorage.getItem(PROVIDER_KEY) as LlmProvider) || "ollama",
     llmModel: window.localStorage.getItem(MODEL_KEY) || "ollama/llama3.2",
-    llmApiKey: window.localStorage.getItem(API_KEY_KEY) || "",
+    llmApiKey: "",
+    llmApiKeyLoaded: false,
     llmBaseUrl: window.localStorage.getItem(BASE_URL_KEY) || "",
 
     setTheme(theme) {
@@ -88,8 +92,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
       set({ llmModel: m });
     },
     setLlmApiKey(k) {
-      window.localStorage.setItem(API_KEY_KEY, k);
       set({ llmApiKey: k });
+    },
+    setLlmApiKeyLoaded(v) {
+      set({ llmApiKeyLoaded: v });
     },
     setLlmBaseUrl(u) {
       window.localStorage.setItem(BASE_URL_KEY, u);

@@ -20,17 +20,32 @@ struct Handshake {
     port: u16,
 }
 
-/// Walk candidate directories to find the repo root that contains `python/main.py`.
-fn find_repo_root() -> Option<std::path::PathBuf> {
+/// Locate the directory that contains `python/main.py`.
+///
+/// Search order:
+///  1. Bundled app resources: `Queriously.app/Contents/Resources/python/main.py`
+///  2. Walk up from the executable (dev builds, cargo run)
+///  3. cwd / cwd/.. (tauri dev, running from repo root)
+///
+/// Returns the directory whose `python/main.py` child exists.
+fn find_python_root() -> Option<std::path::PathBuf> {
     let has_python = |dir: &std::path::Path| dir.join("python").join("main.py").exists();
 
-    // 1. Relative to the running executable.
-    //    Bundled: Queriously.app/Contents/MacOS/queriously → ../../../../ is repo root
-    //    Release binary: target/release/queriously → ../../../ is repo root
+    // 1. Bundled .app: Resources dir is a sibling of the MacOS dir containing the binary.
+    //    exe = .app/Contents/MacOS/queriously → .app/Contents/Resources
+    if let Ok(exe) = std::env::current_exe().and_then(std::fs::canonicalize) {
+        if let Some(macos_dir) = exe.parent() {
+            let resources = macos_dir.with_file_name("Resources");
+            if has_python(&resources) {
+                eprintln!("[sidecar] found python in app bundle Resources");
+                return Some(resources);
+            }
+        }
+    }
+
+    // 2. Walk up from the executable (dev / release binary in repo tree).
     if let Ok(exe) = std::env::current_exe().and_then(std::fs::canonicalize) {
         let mut dir = exe.as_path();
-        // Walk up to 10 levels from the binary to find the repo root.
-        // Bundled .app is 9 levels deep: MacOS/Contents/App/macos/bundle/release/target/src-tauri/repo
         for _ in 0..10 {
             if let Some(parent) = dir.parent() {
                 dir = parent;
@@ -43,12 +58,12 @@ fn find_repo_root() -> Option<std::path::PathBuf> {
         }
     }
 
-    // 2. Check cwd (running from repo root).
+    // 3. Check cwd (running from repo root).
     if let Ok(cwd) = std::env::current_dir() {
         if has_python(&cwd) {
             return Some(cwd);
         }
-        // 3. Check parent of cwd (tauri dev runs from src-tauri/).
+        // 4. Check parent of cwd (tauri dev runs from src-tauri/).
         let parent = cwd.join("..");
         if has_python(&parent) {
             return std::fs::canonicalize(parent).ok();
@@ -61,31 +76,68 @@ fn find_repo_root() -> Option<std::path::PathBuf> {
 /// Locate the bundled Python sidecar entry point. For local dev we fall back
 /// to the repo's `python/main.py` invoked via the system Python. Phase 4 will
 /// swap this for a PyInstaller-bundled binary (OQ-02 in the spec).
-fn sidecar_command() -> Option<Command> {
-    // Find the repo root containing the `python/` package directory.
-    // We check multiple locations:
-    //   1. Relative to the executable (works for bundled .app and release binary)
-    //   2. cwd (works when run from repo root)
-    //   3. cwd/.. (tauri dev runs from src-tauri/)
-    let repo_root = find_repo_root()?;
-
-    let python_dir = repo_root.join("python");
-
-    // Prefer venv Python if it exists, then QUERIOUSLY_PYTHON env, then system python3.
-    let venv_python = python_dir.join(".venv").join("bin").join("python3");
-    let python_bin = if venv_python.exists() {
-        venv_python.to_string_lossy().into_owned()
-    } else {
-        std::env::var("QUERIOUSLY_PYTHON").unwrap_or_else(|_| "python3".into())
+/// Find the venv python3 binary. Checks:
+///  1. Repo root baked in at compile time (CARGO_MANIFEST_DIR/../python/.venv)
+///  2. Walking up from the executable (dev builds inside repo tree)
+///  3. cwd / cwd/..
+fn find_venv_python() -> Option<String> {
+    let venv_bin = |dir: &std::path::Path| {
+        let p = dir.join("python").join(".venv").join("bin").join("python3");
+        if p.exists() { Some(p.to_string_lossy().into_owned()) } else { None }
     };
 
-    eprintln!("[sidecar] using python: {python_bin}");
-    eprintln!("[sidecar] repo root: {}", repo_root.display());
+    // 1. Compile-time repo root: CARGO_MANIFEST_DIR is src-tauri/, join .. to get repo root.
+    let repo_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
+    if let Ok(repo) = std::fs::canonicalize(&repo_root) {
+        if let Some(bin) = venv_bin(&repo) {
+            return Some(bin);
+        }
+    }
 
-    // Run as `python -m python.main` from the repo root so relative imports work.
+    // 2. Walk up from the executable.
+    if let Ok(exe) = std::env::current_exe().and_then(std::fs::canonicalize) {
+        let mut dir = exe.as_path();
+        for _ in 0..10 {
+            if let Some(parent) = dir.parent() {
+                dir = parent;
+                if let Some(bin) = venv_bin(dir) {
+                    return Some(bin);
+                }
+            } else {
+                break;
+            }
+        }
+    }
+
+    // 3. Check cwd and cwd/..
+    if let Ok(cwd) = std::env::current_dir() {
+        if let Some(bin) = venv_bin(&cwd) {
+            return Some(bin);
+        }
+        if let Some(bin) = venv_bin(&cwd.join("..")) {
+            return Some(bin);
+        }
+    }
+
+    None
+}
+
+fn sidecar_command() -> Option<Command> {
+    let root = find_python_root()?;
+
+    // Find the venv python (may be in a different location than the source
+    // when running from a bundled .app where source is in Resources/).
+    let python_bin = find_venv_python()
+        .or_else(|| std::env::var("QUERIOUSLY_PYTHON").ok())
+        .unwrap_or_else(|| "python3".into());
+
+    eprintln!("[sidecar] using python: {python_bin}");
+    eprintln!("[sidecar] python root: {}", root.display());
+
+    // Run as `python -m python.main` from the root dir so relative imports work.
     let mut cmd = Command::new(python_bin);
     cmd.args(["-m", "python.main"]);
-    cmd.current_dir(&repo_root);
+    cmd.current_dir(&root);
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
     Some(cmd)

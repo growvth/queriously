@@ -70,8 +70,8 @@ export function PdfPage({ doc, pageNumber, zoom, onVisible }: Props) {
     const dpr = window.devicePixelRatio || 1;
     const viewport = page.getViewport({ scale: zoom });
 
-    canvas.width = Math.floor(viewport.width * dpr);
-    canvas.height = Math.floor(viewport.height * dpr);
+    canvas.width = Math.round(viewport.width * dpr);
+    canvas.height = Math.round(viewport.height * dpr);
     canvas.style.width = `${viewport.width}px`;
     canvas.style.height = `${viewport.height}px`;
 
@@ -81,10 +81,12 @@ export function PdfPage({ doc, pageNumber, zoom, onVisible }: Props) {
 
     await page.render({ canvasContext: ctx, viewport }).promise;
 
-    // Build text layer. Clear and re-populate on each render so zoom works.
+    // pdfjs 4.x positions spans and sets font-sizes via
+    // calc(var(--scale-factor) * ...). Set the variable BEFORE constructing
+    // the TextLayer so the constructor's setLayerDimensions call and all
+    // subsequent span sizing resolve correctly.
     textLayer.innerHTML = "";
-    textLayer.style.width = `${viewport.width}px`;
-    textLayer.style.height = `${viewport.height}px`;
+    textLayer.style.setProperty("--scale-factor", `${viewport.scale}`);
     try {
       const tl = new pdfjsLib.TextLayer({
         textContentSource: page.streamTextContent(),

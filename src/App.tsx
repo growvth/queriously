@@ -10,6 +10,7 @@ import { TopBar } from "./components/layout/TopBar";
 import { OnboardingModal } from "./components/onboarding/OnboardingModal";
 import { FloatingToolbar } from "./components/pdf/FloatingToolbar";
 import { PDFViewer } from "./components/pdf/PDFViewer";
+import { SessionPanel } from "./components/sessions/SessionPanel";
 import { useAnnotations } from "./hooks/useAnnotations";
 import { useLlmConfig } from "./hooks/useLlmConfig";
 import { useMarginalia } from "./hooks/useMarginalia";
@@ -69,7 +70,10 @@ function App() {
       <main className="flex-1 min-h-0">
         <PanelGroup direction="horizontal" autoSaveId="queriously-main">
           <Panel defaultSize={18} minSize={12} maxSize={32}>
-            <Sidebar renderLibrary={() => <LibraryPanel />} />
+            <Sidebar
+              renderLibrary={() => <LibraryPanel />}
+              renderSessions={() => <SessionPanel />}
+            />
           </Panel>
           <ResizeHandle />
           <Panel defaultSize={54} minSize={30}>

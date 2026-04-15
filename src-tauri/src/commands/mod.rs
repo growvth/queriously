@@ -2,6 +2,7 @@ pub mod ai;
 pub mod annotations;
 pub mod config;
 pub mod pdf;
+pub mod sessions;
 pub mod sidecar_cmd;
 
 use crate::db::DbHandle;

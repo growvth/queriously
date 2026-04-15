@@ -24,7 +24,14 @@ export function FloatingToolbar() {
 
   if (!selection || !selection.rect) return null;
 
-  const { text, page, rect } = selection;
+  const { page, rect } = selection;
+
+  /** Read selected text live from the browser so we never get a stale/truncated
+   *  snapshot that was captured at mouseup time via requestAnimationFrame. */
+  function freshText(): string {
+    const live = window.getSelection()?.toString().trim();
+    return live || selection!.text;          // fall back to stored text
+  }
 
   const top = rect.top - 44;
   const left = rect.left + rect.width / 2;
@@ -35,20 +42,23 @@ export function FloatingToolbar() {
   }
 
   function askAbout() {
-    send(`Explain the following passage:\n\n> ${text}`, text);
+    const t = freshText();
+    send(`Explain the following passage:\n\n> ${t}`, t);
     dismiss();
   }
 
   function extractEquation() {
+    const t = freshText();
     send(
-      `Extract and explain the mathematical equation(s) in the following text. Format them in LaTeX notation and describe what each variable represents:\n\n> ${text}`,
-      text,
+      `Extract and explain the mathematical equation(s) in the following text. Format them in LaTeX notation and describe what each variable represents:\n\n> ${t}`,
+      t,
     );
     dismiss();
   }
 
   function summarizeSelection() {
-    send(`Summarize the following passage concisely:\n\n> ${text}`, text);
+    const t = freshText();
+    send(`Summarize the following passage concisely:\n\n> ${t}`, t);
     dismiss();
   }
 
@@ -77,7 +87,7 @@ export function FloatingToolbar() {
       coords: JSON.stringify(coords),
       type: "highlight",
       color: activeColor,
-      selected_text: text,
+      selected_text: freshText(),
       note_text: null,
       created_at: Math.floor(Date.now() / 1000),
       updated_at: null,
@@ -86,7 +96,7 @@ export function FloatingToolbar() {
   }
 
   function copyText() {
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(freshText());
     dismiss();
   }
 
@@ -97,6 +107,7 @@ export function FloatingToolbar() {
                  bg-surface-raised border border-surface-border rounded-lg
                  shadow-lg animate-in fade-in"
       style={{ top, left, transform: "translateX(-50%)" }}
+      onMouseDown={(e) => e.preventDefault()}
     >
       <ToolBtn icon={<MessageSquare className="w-4 h-4" />} label="Ask about this" onClick={askAbout} />
       <ToolBtn icon={<FileText className="w-4 h-4" />} label="Summarize" onClick={summarizeSelection} />

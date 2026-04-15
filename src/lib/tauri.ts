@@ -37,6 +37,15 @@ export type IngestResult = {
   };
 };
 
+export type Session = {
+  id: string;
+  name: string;
+  research_question: string;
+  created_at: number;
+  updated_at: number | null;
+  paper_count: number;
+};
+
 export const api = {
   openPdf: (path: string) => invoke<Paper>("open_pdf", { path }),
   readPdfBytes: (path: string) => invoke<number[]>("read_pdf_bytes", { path }),
@@ -64,6 +73,16 @@ export const api = {
   sidecarStatus: () => invoke<SidecarStatus>("sidecar_status"),
   updateLlmConfig: (config: { model: string; api_key?: string | null; base_url?: string | null }) =>
     invoke<void>("update_llm_config", { config }),
+  getLlmApiKey: () =>
+    invoke<string | null>("get_llm_api_key"),
+  setLlmApiKey: (apiKey?: string | null) =>
+    invoke<void>("set_llm_api_key", { apiKey: apiKey ?? null }),
   checkOllama: () =>
     invoke<{ running: boolean; models: string[] }>("check_ollama"),
+  getSessions: () =>
+    invoke<Session[]>("get_sessions"),
+  createSession: (name: string, researchQuestion: string) =>
+    invoke<Session>("create_session", { name, researchQuestion }),
+  addPaperToSession: (sessionId: string, paperId: string) =>
+    invoke<void>("add_paper_to_session", { sessionId, paperId }),
 };

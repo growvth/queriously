@@ -118,6 +118,7 @@ function AISetupStep({
   async function handleNext() {
     setSaving(true);
     try {
+      await api.setLlmApiKey(apiKey || null);
       const config = useSettingsStore.getState().getLlmConfig();
       await api.updateLlmConfig(config);
     } catch (err) {

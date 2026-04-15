@@ -43,6 +43,11 @@ pub fn run() {
             commands::sidecar_cmd::sidecar_status,
             commands::config::update_llm_config,
             commands::config::check_ollama,
+            commands::config::get_llm_api_key,
+            commands::config::set_llm_api_key,
+            commands::sessions::get_sessions,
+            commands::sessions::create_session,
+            commands::sessions::add_paper_to_session,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

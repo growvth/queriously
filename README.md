@@ -18,15 +18,42 @@
   <img src="https://img.shields.io/badge/Platform-macOS-lightgrey" alt="Platform macOS" />
 </p>
 
-Queriously is a desktop application designed for deep engagement with technical literature. It integrates a PDF viewer with a research assistant to help navigate complex papers, extract citations, and manage personal document libraries.
+Queriously is a desktop application for deep engagement with technical literature.
+It combines a local PDF reader with a sidecar AI service for grounded, paper-aware
+question answering and annotation workflows.
 
-### Key Capabilities
+## Current Implementation Status
 
-*   **Document Analysis:** Interrogate technical PDFs with a side-by-side research interface.
-*   **Citation Management:** Track and organize references directly from the reading context.
-*   **Mathematical Support:** Render equations and technical notation accurately.
-*   **Local Library:** Maintain a searchable database of research materials and reading sessions.
+### Shipped in this branch
+- PDF open/read flow with local library and SQLite metadata.
+- Ingestion pipeline (parse, chunk, embed, store) through the Python sidecar.
+- Streaming QA with reading modes and source-cited responses.
+- Marginalia generation and rendering (Phase 1 note types).
+- Summary generation and persistent reading progress/highlights.
+- Session skeleton: create/list sessions and add current paper.
 
-### Technical Stack
+### In progress / planned
+- Equations and citations tabs (UI + endpoint wiring).
+- Full research session workflow (context chat, synthesis, richer session actions).
+- Marginalia edit/delete/promote interactions and broader note types.
+- Export pack and deeper test coverage.
 
-Built with Tauri for a lightweight native experience on macOS, utilizing React and TypeScript for the interface and Rust for the secure backend and document processing.
+## Tech Stack
+
+- Tauri 2 + Rust command layer
+- React 18 + TypeScript + Zustand
+- Python FastAPI sidecar
+- SQLite + local vector store
+
+## Local Development
+
+```bash
+npm install
+npm run tauri dev
+```
+
+For frontend-only iteration:
+
+```bash
+npm run dev
+```

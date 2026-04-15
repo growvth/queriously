@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:build": "tauri build && rm -rf /Applications/Queriously.app && cp -R src-tauri/target/release/bundle/macos/Queriously.app /Applications/Queriously.app && echo '✓ Installed to /Applications/Queriously.app'"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.2",
