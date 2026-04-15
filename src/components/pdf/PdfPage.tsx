@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PdfDoc } from "../../lib/pdfjs";
 import { pdfjsLib } from "../../lib/pdfjs";
+import { usePdfStore } from "../../store/pdfStore";
 import { AnnotationLayer } from "./AnnotationLayer";
 import { MarginaliaLayer } from "./MarginaliaLayer";
 
@@ -26,6 +27,7 @@ export function PdfPage({ doc, pageNumber, zoom, onVisible }: Props) {
   const textLayerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [rendered, setRendered] = useState(false);
+  const selection = usePdfStore((s) => s.selection);
 
   // First pass: fetch the page to learn its dimensions so the placeholder
   // reserves the correct height and the virtualizer can measure accurately.
@@ -114,16 +116,37 @@ export function PdfPage({ doc, pageNumber, zoom, onVisible }: Props) {
     <div
       ref={containerRef}
       data-page={pageNumber}
-      className="relative mx-auto my-4 shadow-lg bg-white"
+      className="relative mx-auto my-4 shadow-lg bg-white select-none"
       style={{
         width: size ? `${size.w}px` : undefined,
         height: size ? `${size.h}px` : undefined,
       }}
     >
-      <canvas ref={canvasRef} className="block" />
+      <canvas ref={canvasRef} className="block pointer-events-none z-[1]" />
+      
+      {selection && selection.page === pageNumber && selection.rects.length > 0 && (
+        <div className="absolute inset-0 pointer-events-none z-[2]">
+          {selection.rects.map((r, idx) => {
+            const [x1, y1, x2, y2] = r;
+            return (
+              <div
+                key={`${pageNumber}-selection-${idx}`}
+                className="absolute rounded-[2px] bg-accent-primary/25"
+                style={{
+                  left: `${x1 * 100}%`,
+                  top: `${y1 * 100}%`,
+                  width: `${(x2 - x1) * 100}%`,
+                  height: `${(y2 - y1) * 100}%`,
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+
       <div
         ref={textLayerRef}
-        className="textLayer absolute inset-0 leading-none"
+        className="textLayer absolute inset-0 leading-none select-text z-[3]"
         style={{
           // pdfjs text layer expects these CSS variables / positioning
           color: "transparent",
