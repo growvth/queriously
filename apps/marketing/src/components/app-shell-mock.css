@@ -1,0 +1,1020 @@
+/**
+ * Mirrors Queriously desktop app tokens from src/styles/globals.css
+ * (Scholar Light / Queriously Dark). Scoped so marketing page CSS does not leak in.
+ * Fonts load from marketing index.css (IBM Plex Sans + JetBrains Mono).
+ */
+.app-shell-mock {
+  --asm-font: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --asm-mono: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--asm-font);
+  font-size: 14px;
+  line-height: 1.45;
+  font-feature-settings: 'kern' 1, 'liga' 1;
+  user-select: none;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  height: clamp(300px, 42vw, 440px);
+}
+
+.app-shell-mock[data-app-mock-theme='light'] {
+  --asm-surface-base: 250 247 243;
+  --asm-surface-raised: 255 255 255;
+  --asm-surface-overlay: 244 238 230;
+  --asm-surface-border: 226 220 211;
+  --asm-text-primary: 26 21 32;
+  --asm-text-secondary: 58 54 62;
+  --asm-text-muted: 76 72 80;
+  --asm-accent-primary: 235 0 69;
+  --asm-accent-secondary: 184 0 54;
+  --asm-accent-success: 16 160 108;
+  --asm-accent-warning: 184 134 11;
+  --asm-accent-error: 200 38 50;
+  color: rgb(var(--asm-text-primary));
+  background: rgb(var(--asm-surface-base));
+}
+
+.app-shell-mock[data-app-mock-theme='dark'] {
+  --asm-surface-base: 15 16 22;
+  --asm-surface-raised: 26 28 36;
+  --asm-surface-overlay: 38 40 50;
+  --asm-surface-border: 54 57 72;
+  --asm-text-primary: 241 237 235;
+  /* Brighter secondary/muted so labels match marketing body contrast */
+  --asm-text-secondary: 198 200 210;
+  --asm-text-muted: 176 178 186;
+  --asm-accent-primary: 235 0 69;
+  --asm-accent-secondary: 255 77 128;
+  --asm-accent-success: 52 211 153;
+  --asm-accent-warning: 251 191 36;
+  --asm-accent-error: 248 113 113;
+  color: rgb(var(--asm-text-primary));
+  background: rgb(var(--asm-surface-base));
+}
+
+/* Wider marketing placement: taller shell, slightly larger type, roomier side rails. */
+.app-shell-mock--showcase {
+  height: clamp(380px, 46vw, 560px);
+  font-size: 15px;
+}
+
+.app-shell-mock--showcase .asm-sidebar {
+  min-width: 200px;
+  max-width: 300px;
+  width: 27%;
+}
+
+.app-shell-mock--showcase .asm-right {
+  max-width: 300px;
+  min-width: 176px;
+}
+
+.app-shell-mock--showcase .asm-topbar {
+  height: 46px;
+}
+
+.app-shell-mock--showcase .asm-status {
+  min-height: 36px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+.app-shell-mock--showcase .asm-mode {
+  font-size: 11px;
+  padding: 6px 3px;
+  gap: 4px;
+}
+
+.app-shell-mock--showcase .asm-mode svg {
+  width: 13px;
+  height: 13px;
+}
+
+.asm-handle {
+  width: 3px;
+  flex-shrink: 0;
+  background: rgb(var(--asm-surface-border));
+}
+
+.asm-topbar {
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-bottom: 1px solid rgb(var(--asm-surface-border));
+  background: rgb(var(--asm-surface-raised));
+}
+
+.asm-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 12px;
+  margin-right: 12px;
+  border-right: 1px solid rgb(var(--asm-surface-border));
+}
+
+.asm-brand-name {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.asm-doc-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: rgb(var(--asm-text-secondary));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.asm-top-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.asm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgb(var(--asm-text-primary));
+  background: transparent;
+  border: none;
+  font-family: inherit;
+}
+
+.asm-btn:hover {
+  background: rgb(var(--asm-surface-overlay));
+}
+
+.asm-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.asm-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+}
+
+.asm-sidebar {
+  flex: 0 1 auto;
+  width: 30%;
+  min-width: 176px;
+  max-width: 228px;
+  display: flex;
+  background: rgb(var(--asm-surface-raised));
+  border-right: 1px solid rgb(var(--asm-surface-border));
+}
+
+.asm-srail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border-right: 1px solid rgb(var(--asm-surface-border));
+}
+
+.asm-tabico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: rgb(var(--asm-text-secondary));
+  cursor: default;
+}
+
+.asm-tabico svg {
+  width: 16px;
+  height: 16px;
+}
+
+.asm-tabico:hover {
+  background: rgb(var(--asm-surface-overlay));
+}
+
+.asm-tabico[data-active='true'] {
+  background: rgb(var(--asm-surface-overlay));
+  color: rgb(var(--asm-accent-primary));
+}
+
+.asm-spanel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.asm-shead {
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(var(--asm-text-muted));
+  border-bottom: 1px solid rgb(var(--asm-surface-border));
+}
+
+.asm-search-wrap {
+  position: relative;
+  padding: 8px;
+  border-bottom: 1px solid rgb(var(--asm-surface-border));
+}
+
+.asm-search-wrap svg {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: rgb(var(--asm-text-muted));
+}
+
+.asm-input {
+  width: 100%;
+  padding: 5px 10px 5px 30px;
+  font-size: 12px;
+  font-family: inherit;
+  border-radius: 6px;
+  border: 1px solid rgb(var(--asm-surface-border));
+  background: rgb(var(--asm-surface-overlay));
+  color: rgb(var(--asm-text-primary));
+}
+
+.asm-input::placeholder {
+  color: rgb(var(--asm-text-muted));
+}
+
+.asm-lib {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.asm-paper {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgb(var(--asm-surface-border));
+  cursor: default;
+}
+
+.asm-paper-main {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.asm-paper[data-active='true'] {
+  background: rgb(var(--asm-surface-overlay));
+}
+
+.asm-paper:hover {
+  background: rgb(var(--asm-surface-overlay));
+}
+
+.asm-paper svg {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  color: rgb(var(--asm-text-muted));
+}
+
+.asm-ptitle {
+  font-size: 13px;
+  line-height: 1.35;
+  color: rgb(var(--asm-text-primary));
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.asm-pmeta {
+  font-size: 11px;
+  color: rgb(var(--asm-text-muted));
+  margin-top: 4px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.asm-viewer {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  background: rgb(var(--asm-surface-base));
+  padding-bottom: 18px;
+}
+
+.asm-page {
+  margin: 10px auto 0;
+  max-width: 92%;
+  background: #fff;
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: 14px 16px 20px;
+  color: #1a1520;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.app-shell-mock[data-app-mock-theme='dark'] .asm-page {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+.asm-para {
+  margin: 0 0 0.55em;
+}
+
+.asm-para:last-child {
+  margin-bottom: 0;
+}
+
+.asm-hl {
+  background: rgb(var(--asm-accent-primary) / 0.22);
+  border-radius: 1px;
+}
+
+.asm-right {
+  width: 34%;
+  min-width: 158px;
+  max-width: 230px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgb(var(--asm-surface-raised));
+  border-left: 1px solid rgb(var(--asm-surface-border));
+}
+
+.asm-rtabs {
+  display: flex;
+  border-bottom: 1px solid rgb(var(--asm-surface-border));
+}
+
+.asm-rtab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 4px;
+  font-size: 12px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  cursor: default;
+  color: rgb(var(--asm-text-secondary));
+}
+
+.asm-rtab svg {
+  width: 16px;
+  height: 16px;
+}
+
+.asm-rtab[data-active='true'] {
+  color: rgb(var(--asm-accent-primary));
+  box-shadow: inset 0 -1px 0 0 rgb(var(--asm-accent-primary));
+}
+
+.asm-rtab:hover {
+  background: rgb(var(--asm-surface-overlay));
+}
+
+.asm-chat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.asm-messages {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.asm-row {
+  display: flex;
+  gap: 10px;
+}
+
+.asm-row-user {
+  flex-direction: row-reverse;
+}
+
+.asm-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.asm-avatar-user {
+  background: rgb(var(--asm-accent-primary) / 0.2);
+  color: rgb(var(--asm-accent-primary));
+}
+
+.asm-avatar-user svg {
+  width: 14px;
+  height: 14px;
+}
+
+.asm-avatar-bot {
+  background: rgb(var(--asm-surface-overlay));
+  color: rgb(var(--asm-text-secondary));
+}
+
+.asm-bubble {
+  max-width: 88%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.asm-bubble-user {
+  background: rgb(var(--asm-accent-primary) / 0.15);
+  color: rgb(var(--asm-text-primary));
+}
+
+.asm-bubble-bot {
+  background: rgb(var(--asm-surface-overlay));
+  color: rgb(var(--asm-text-primary));
+}
+
+.asm-bubble-bot p {
+  margin: 0 0 0.45em;
+}
+
+.asm-bubble-bot p:last-child {
+  margin-bottom: 0;
+}
+
+.asm-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 12px;
+  margin-left: 3px;
+  background: rgb(var(--asm-accent-primary));
+  border-radius: 1px;
+  animation: asm-pulse 1s ease-in-out infinite;
+}
+
+@keyframes asm-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.asm-conf {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: rgb(var(--asm-text-muted));
+  margin-top: 2px;
+}
+
+.asm-conf svg {
+  width: 14px;
+  height: 14px;
+}
+
+.asm-cite {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgb(var(--asm-surface-border));
+  background: rgb(var(--asm-surface-overlay) / 0.55);
+  text-align: left;
+  font-size: 11px;
+  cursor: default;
+}
+
+.asm-cite svg {
+  width: 14px;
+  height: 14px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  color: rgb(var(--asm-accent-primary));
+}
+
+.asm-cite-page {
+  font-weight: 600;
+  color: rgb(var(--asm-text-primary));
+}
+
+.asm-cite-score {
+  margin-left: 8px;
+  font-weight: 400;
+  color: rgb(var(--asm-text-muted));
+}
+
+.asm-cite-snippet {
+  margin-top: 3px;
+  color: rgb(var(--asm-text-secondary));
+  line-height: 1.42;
+}
+
+/* Match ReadingModeSelector: single row, equal flex columns, no wrap. */
+.asm-modes {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 4px 7px;
+  border-top: 1px solid rgb(var(--asm-surface-border));
+}
+
+.asm-mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 5px 2px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  font-family: inherit;
+  color: rgb(var(--asm-text-secondary));
+  cursor: default;
+}
+
+.asm-mode > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* "Challenge" is slightly longer — reserve width and don't ellipsize it. */
+.asm-mode--challenge {
+  flex: 1.32 1 0;
+}
+
+.asm-mode:not(.asm-mode--challenge) {
+  flex: 0.89 1 0;
+}
+
+.asm-mode--challenge > span:last-child {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.asm-mode svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.asm-mode:hover {
+  background: rgb(var(--asm-surface-overlay));
+  color: rgb(var(--asm-text-primary));
+}
+
+.asm-mode[data-active='true'] {
+  background: rgb(var(--asm-accent-primary) / 0.15);
+  color: rgb(var(--asm-accent-primary));
+}
+
+.asm-compose {
+  flex-shrink: 0;
+  border-top: 1px solid rgb(var(--asm-surface-border));
+}
+
+.asm-compose-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 8px;
+}
+
+.asm-textarea {
+  flex: 1;
+  min-height: 36px;
+  max-height: 80px;
+  resize: none;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  border-radius: 6px;
+  border: 1px solid rgb(var(--asm-surface-border));
+  background: rgb(var(--asm-surface-overlay));
+  color: rgb(var(--asm-text-primary));
+}
+
+.asm-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: none;
+  background: rgb(var(--asm-accent-primary));
+  color: #fff;
+  cursor: default;
+}
+
+.asm-send svg {
+  width: 16px;
+  height: 16px;
+}
+
+.asm-status {
+  min-height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 6px 10px 6px 12px;
+  border-top: 1px solid rgb(var(--asm-surface-border));
+  background: rgb(var(--asm-surface-raised));
+  font-size: 12px;
+  color: rgb(var(--asm-text-secondary));
+}
+
+.asm-status-primary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.asm-status-primary > .asm-tabular:first-child {
+  flex-shrink: 0;
+}
+
+.asm-st-muted {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.asm-st-count {
+  margin-left: 4px;
+  opacity: 0.85;
+}
+
+.asm-ai-ready {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.asm-status .asm-tabular {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--asm-mono);
+  font-size: 11px;
+}
+
+.asm-status svg {
+  width: 12px;
+  height: 12px;
+}
+
+.asm-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(var(--asm-accent-success));
+}
+
+.asm-zoom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.asm-zoom button {
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: rgb(var(--asm-text-primary));
+  cursor: default;
+}
+
+.asm-zoom button:hover {
+  background: rgb(var(--asm-surface-overlay));
+}
+
+.asm-zoom svg {
+  width: 14px;
+  height: 14px;
+}
+
+.asm-logo {
+  display: block;
+  flex-shrink: 0;
+  color: rgb(var(--asm-accent-primary));
+}
+
+/* Tablet: drop the library sidebar entirely — the reader + chat are the story. */
+@media (max-width: 820px) {
+  .app-shell-mock,
+  .app-shell-mock--showcase {
+    font-size: 12px;
+  }
+
+  .app-shell-mock--showcase {
+    height: clamp(360px, 70vw, 480px);
+  }
+
+  .asm-topbar {
+    height: 40px;
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .app-shell-mock--showcase .asm-topbar {
+    height: 42px;
+  }
+
+  .asm-brand {
+    padding-right: 8px;
+    margin-right: 8px;
+    gap: 6px;
+  }
+
+  .asm-brand-name {
+    font-size: 13px;
+  }
+
+  .asm-doc-title {
+    display: none;
+  }
+
+  .asm-top-actions {
+    gap: 2px;
+  }
+
+  .asm-top-actions .asm-btn > span {
+    display: none;
+  }
+
+  .asm-top-actions .asm-btn {
+    padding: 5px;
+    gap: 0;
+  }
+
+  .asm-sidebar,
+  .app-shell-mock--showcase .asm-sidebar,
+  .asm-body > .asm-handle {
+    display: none;
+  }
+
+  .asm-right,
+  .app-shell-mock--showcase .asm-right {
+    width: 44%;
+    min-width: 180px;
+    max-width: 260px;
+  }
+
+  .asm-page {
+    max-width: 94%;
+    padding: 12px 14px 16px;
+    font-size: 12px;
+  }
+
+  .asm-rtab {
+    font-size: 11px;
+    padding: 7px 3px;
+    gap: 4px;
+  }
+
+  .asm-rtab svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .asm-messages {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .asm-bubble {
+    font-size: 11.5px;
+    padding: 7px 10px;
+  }
+
+  .asm-cite {
+    padding: 6px 8px;
+    font-size: 10.5px;
+  }
+
+  .asm-cite-snippet {
+    display: none;
+  }
+
+  .asm-modes {
+    padding: 5px 3px 6px;
+  }
+
+  .asm-mode,
+  .app-shell-mock--showcase .asm-mode {
+    font-size: 10px;
+    padding: 5px 1px;
+    gap: 2px;
+  }
+
+  .asm-mode svg,
+  .app-shell-mock--showcase .asm-mode svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .asm-textarea {
+    font-size: 12px;
+    min-height: 32px;
+    padding: 7px 9px;
+  }
+
+  .asm-status {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .app-shell-mock--showcase .asm-status {
+    min-height: 32px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .asm-st-muted {
+    display: none;
+  }
+}
+
+/* Phone: stack reader on top and chat below so both are actually readable. */
+@media (max-width: 560px) {
+  .app-shell-mock,
+  .app-shell-mock--showcase {
+    height: clamp(460px, 118vw, 620px);
+    font-size: 11.5px;
+  }
+
+  .asm-body {
+    flex-direction: column;
+  }
+
+  .asm-right,
+  .app-shell-mock--showcase .asm-right {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    border-left: none;
+    border-top: 1px solid rgb(var(--asm-surface-border));
+    flex: 0 0 auto;
+    height: 58%;
+  }
+
+  .asm-viewer {
+    flex: 0 0 42%;
+    padding-bottom: 10px;
+  }
+
+  .asm-page {
+    max-width: 96%;
+    margin-top: 8px;
+    padding: 11px 13px 14px;
+  }
+
+  .asm-para {
+    font-size: 11.5px;
+  }
+
+  .asm-topbar,
+  .app-shell-mock--showcase .asm-topbar {
+    height: 38px;
+    padding: 0 8px;
+  }
+
+  .asm-brand {
+    padding-right: 6px;
+    margin-right: 6px;
+  }
+
+  .asm-brand-name {
+    font-size: 12px;
+  }
+
+  .asm-rtabs .asm-rtab > span:last-child {
+    display: none;
+  }
+
+  .asm-rtab {
+    padding: 6px 3px;
+  }
+
+  .asm-messages {
+    padding: 9px 9px 2px;
+    gap: 8px;
+  }
+
+  .asm-avatar {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .asm-bubble {
+    font-size: 11px;
+    padding: 6px 9px;
+    max-width: 92%;
+  }
+
+  .asm-conf,
+  .asm-cite {
+    display: none;
+  }
+
+  .asm-modes {
+    padding: 4px 3px 5px;
+  }
+
+  .asm-compose-form {
+    padding: 6px;
+  }
+
+  .asm-textarea {
+    min-height: 30px;
+    padding: 6px 8px;
+    font-size: 11.5px;
+  }
+
+  .asm-send {
+    padding: 6px 8px;
+  }
+
+  .asm-status {
+    padding: 4px 8px;
+    gap: 4px 8px;
+  }
+
+  .asm-ai-ready {
+    gap: 4px;
+  }
+
+  .asm-zoom {
+    gap: 2px;
+  }
+
+  .asm-zoom svg {
+    width: 12px;
+    height: 12px;
+  }
+}

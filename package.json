@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "dev:marketing": "cd apps/marketing && npm run dev",
+    "build:marketing": "cd apps/marketing && npm run build",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:build": "tauri build && rm -rf /Applications/Queriously.app && cp -R src-tauri/target/release/bundle/macos/Queriously.app /Applications/Queriously.app && echo '✓ Installed to /Applications/Queriously.app'"
