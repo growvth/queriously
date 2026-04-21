@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Moon, Sun } from 'lucide-react'
+import { Analytics } from '@vercel/analytics/react'
 import brandLogo from '../../../queriously-red-bg.png'
 import { AppShellMock } from './components/AppShellMock'
 
@@ -558,6 +559,7 @@ function App() {
           <p className="footer-group footer-meta">v0.1.0 · macOS desktop · Made for research teams</p>
         </div>
       </footer>
+      <Analytics />
     </div>
   )
 }
