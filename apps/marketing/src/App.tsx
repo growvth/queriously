@@ -11,6 +11,19 @@ const GITHUB_URL = 'https://github.com/growvth/queriously'
 const stagger = (index: number, step = 60): CSSProperties =>
   ({ ['--reveal-delay' as string]: `${index * step}ms` }) as CSSProperties
 
+const getInitialTheme = (): ThemeMode => {
+  if (typeof window === 'undefined') {
+    return 'light'
+  }
+
+  const saved = localStorage.getItem('queriously-theme') as ThemeMode | null
+  if (saved === 'dark' || saved === 'light') {
+    return saved
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
 const capabilities = [
   {
     title: 'Document-grounded assistant',
@@ -52,6 +65,33 @@ const workflows = [
   },
 ]
 
+const evidenceStack = [
+  {
+    step: '01',
+    title: 'Parse',
+    token: 'pdf.pages[]',
+    text: 'Turn the paper into addressable pages, sections, figures, and passages.',
+  },
+  {
+    step: '02',
+    title: 'Index',
+    token: 'chunks@sha256',
+    text: 'Embed source chunks with stable IDs so answers can point back to exact evidence.',
+  },
+  {
+    step: '03',
+    title: 'Interrogate',
+    token: 'mode=challenge',
+    text: 'Ask for explanations, objections, connections, and missing assumptions.',
+  },
+  {
+    step: '04',
+    title: 'Synthesize',
+    token: 'brief.md + cites',
+    text: 'Promote marginalia into decisions, hypotheses, and next research questions.',
+  },
+]
+
 const inAppToday = [
   {
     title: 'PDF library + reader',
@@ -73,19 +113,19 @@ const inAppToday = [
 
 const researchLog = [
   {
-    tag: 'import',
+    tag: 'ingest',
     ts: '09:14',
-    text: 'Imported 12 papers from internal architecture review.',
+    text: 'Parsed 12 PDFs; 842 pages, 3,918 addressable passages.',
   },
   {
-    tag: 'link',
+    tag: 'cite',
     ts: '10:02',
-    text: 'Linked 17 evidence passages to core deployment decision.',
+    text: 'Pinned p.7 §3.2 and p.11 Fig.4 to latency-cost claim.',
   },
   {
-    tag: 'export',
+    tag: 'diff',
     ts: '11:38',
-    text: 'Generated synthesis brief and exported action plan.',
+    text: 'Updated recommendation after contradiction in appendix B.',
   },
 ]
 
@@ -192,22 +232,12 @@ function GithubLink() {
 }
 
 function App() {
-  const [theme, setTheme] = useState<ThemeMode>('light')
+  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme)
   const [openFaq, setOpenFaq] = useState<number>(0)
 
   useEffect(() => {
-    const saved = localStorage.getItem('queriously-theme') as ThemeMode | null
-    if (saved === 'dark' || saved === 'light') {
-      setTheme(saved)
-      document.documentElement.dataset.theme = saved
-      return
-    }
-
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    const fallback = prefersDark ? 'dark' : 'light'
-    setTheme(fallback)
-    document.documentElement.dataset.theme = fallback
-  }, [])
+    document.documentElement.dataset.theme = theme
+  }, [theme])
 
   useEffect(() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -263,11 +293,11 @@ function App() {
             <div className="hero-grid">
               <div className="hero-content">
                 <p className="kicker reveal" style={stagger(0)}>macOS desktop app</p>
-                <h1 className="reveal" style={stagger(1)}>Technical decisions, with defensible evidence.</h1>
+                <h1 className="reveal" style={stagger(1)}>Read papers like a system of record.</h1>
                 <p className="hero-copy reveal" style={stagger(2)}>
-                  Queriously is a local-first desktop reader for technical PDFs. Answers cite the
-                  source passage, and your library, notes, and sessions stay on your machine. Early
-                  builds are in active development and usable day to day.
+                  Queriously is a local-first desktop reader for technical PDFs. Ask hard
+                  questions, inspect the cited passage, keep marginalia beside the page, and let
+                  every answer carry its provenance.
                 </p>
                 <div className="hero-cta-row reveal" style={stagger(3)}>
                   <a className="hero-status-chip" href="#download">
@@ -281,36 +311,45 @@ function App() {
                   </a>
                 </div>
                 <p className="hero-note reveal" style={stagger(4)}>
-                  Native app · BYOK · Source-cited output. Installers will be published on this
-                  site; for now the app runs from a local developer build.
+                  Native app · BYOK · Source-cited output · for people who keep a BibTeX file open.
                 </p>
               </div>
               <aside className="hero-panel reveal" style={stagger(2)} role="presentation">
                 <div className="hero-panel-head">
                   <div className="hero-panel-head-left">
                     <span className="dot"></span>
-                    <span>Live workspace snapshot</span>
+                    <span>Live paper session</span>
                   </div>
-                  <span className="panel-badge">Synced</span>
+                  <span className="panel-badge">audit trail on</span>
                 </div>
-                <p className="hero-panel-title">Model serving architecture decision · Q3 planning</p>
+                <p className="hero-panel-title">model-serving-latency.review</p>
                 <div className="panel-body">
                   <p className="panel-label">Question under review</p>
                   <p className="panel-question">
                     Which serving architecture gives the best latency-to-cost profile at
                     projected peak traffic?
                   </p>
+                  <div className="panel-proof">
+                    <div className="panel-proof-row">
+                      <span>claim</span>
+                      <code>p99 = f(batch_timeout, arrival_skew)</code>
+                    </div>
+                    <div className="panel-proof-row">
+                      <span>evidence</span>
+                      <code>[p.7 §3.2] [fig.4] [appx.B]</code>
+                    </div>
+                  </div>
                   <div className="panel-insight">
                     <p className="panel-label">Recommended direction</p>
                     <p className="panel-summary">
-                      GPU micro-batching improves p95 latency by 23% while maintaining
-                      cost ceilings under burst load.
+                      Use bounded micro-batching; it preserves throughput while keeping tail
+                      latency explainable under skewed arrivals.
                     </p>
                   </div>
                   <div className="panel-status">
-                    <span>17 linked citations</span>
-                    <span>5 active reviewers</span>
-                    <span>brief ready</span>
+                    <span>17 citations</span>
+                    <span>3 contradictions</span>
+                    <span>brief.md ready</span>
                   </div>
                 </div>
               </aside>
@@ -369,6 +408,31 @@ function App() {
                   </li>
                 ))}
               </ol>
+            </div>
+          </div>
+        </section>
+
+        <section className="section evidence-stack-section" aria-labelledby="evidence-stack-heading">
+          <div className="container">
+            <div className="section-head section-head-narrow reveal">
+              <p className="kicker">Evidence stack</p>
+              <h2 id="evidence-stack-heading">A reader with provenance in the loop.</h2>
+              <p className="section-copy">
+                Queriously treats a paper as structured source material: pages become passages,
+                passages become citations, and citations become a trail you can defend later.
+              </p>
+            </div>
+            <div className="evidence-grid">
+              {evidenceStack.map((item, idx) => (
+                <article key={item.step} className="evidence-card reveal" style={stagger(idx, 80)}>
+                  <div className="evidence-card-head">
+                    <span>{item.step}</span>
+                    <code>{item.token}</code>
+                  </div>
+                  <h3>{item.title}</h3>
+                  <p>{item.text}</p>
+                </article>
+              ))}
             </div>
           </div>
         </section>
