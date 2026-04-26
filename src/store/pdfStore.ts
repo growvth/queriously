@@ -16,12 +16,15 @@ type PdfState = {
   currentPage: number;
   zoom: number; // 1.0 == 100%
   selection: Selection | null;
+  ingestStatus: "idle" | "indexing" | "ready" | "failed";
+  ingestMessage: string | null;
 
   setPaper: (paper: Paper | null) => void;
   setDoc: (doc: PdfDoc | null, pageCount: number) => void;
   setCurrentPage: (page: number) => void;
   setZoom: (zoom: number) => void;
   setSelection: (selection: Selection | null) => void;
+  setIngestStatus: (status: PdfState["ingestStatus"], message?: string | null) => void;
 };
 
 export const usePdfStore = create<PdfState>((set) => ({
@@ -31,10 +34,14 @@ export const usePdfStore = create<PdfState>((set) => ({
   currentPage: 1,
   zoom: 1.2,
   selection: null,
+  ingestStatus: "idle",
+  ingestMessage: null,
 
-  setPaper: (paper) => set({ paper }),
+  setPaper: (paper) => set({ paper, ingestStatus: paper?.is_indexed ? "ready" : "idle", ingestMessage: null }),
   setDoc: (doc, pageCount) => set({ doc, pageCount, currentPage: 1 }),
   setCurrentPage: (page) => set({ currentPage: page }),
   setZoom: (zoom) => set({ zoom: Math.min(4, Math.max(0.1, zoom)) }),
   setSelection: (selection) => set({ selection }),
+  setIngestStatus: (ingestStatus, ingestMessage = null) =>
+    set({ ingestStatus, ingestMessage }),
 }));

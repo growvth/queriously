@@ -23,6 +23,13 @@ export type SidecarStatus = {
   health: string | null;
 };
 
+export type AiReadiness = {
+  ready: boolean;
+  status: string;
+  detail: string;
+  model: string;
+};
+
 export type IngestResult = {
   paper_id: string;
   chunk_count: number;
@@ -44,6 +51,20 @@ export type Session = {
   created_at: number;
   updated_at: number | null;
   paper_count: number;
+};
+
+export type ChatMessageRecord = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  sources?: unknown[] | null;
+  reading_mode?: string | null;
+  selection_text?: string | null;
+  confidence?: string | null;
+  counterpoint?: string | null;
+  followup_question?: string | null;
+  margin_note?: string | null;
+  created_at: number;
 };
 
 export const api = {
@@ -71,6 +92,24 @@ export const api = {
   deleteAnnotation: (id: string) =>
     invoke<void>("delete_annotation", { id }),
   sidecarStatus: () => invoke<SidecarStatus>("sidecar_status"),
+  getChatMessages: (paperId: string) =>
+    invoke<ChatMessageRecord[]>("get_chat_messages", { paperId }),
+  saveChatMessage: (message: {
+    id: string;
+    paper_id: string;
+    chat_session_id: string;
+    role: "user" | "assistant";
+    content: string;
+    sources?: unknown[] | null;
+    reading_mode?: string | null;
+    selection_text?: string | null;
+    confidence?: string | null;
+    counterpoint?: string | null;
+    followup_question?: string | null;
+    margin_note?: string | null;
+  }) => invoke<void>("save_chat_message", { message }),
+  clearChatMessages: (paperId: string) =>
+    invoke<void>("clear_chat_messages", { paperId }),
   updateLlmConfig: (config: { model: string; api_key?: string | null; base_url?: string | null }) =>
     invoke<void>("update_llm_config", { config }),
   getLlmApiKey: () =>
@@ -79,6 +118,8 @@ export const api = {
     invoke<void>("set_llm_api_key", { apiKey: apiKey ?? null }),
   checkOllama: () =>
     invoke<{ running: boolean; models: string[] }>("check_ollama"),
+  checkAiReadiness: () =>
+    invoke<AiReadiness>("check_ai_readiness"),
   getSessions: () =>
     invoke<Session[]>("get_sessions"),
   createSession: (name: string, researchQuestion: string) =>

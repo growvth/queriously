@@ -19,6 +19,14 @@ pub struct OllamaStatus {
     pub models: Vec<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AiReadiness {
+    pub ready: bool,
+    pub status: String,
+    pub detail: String,
+    pub model: String,
+}
+
 fn keyring_entry() -> Result<keyring::Entry, String> {
     keyring::Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT).map_err(|e| e.to_string())
 }
@@ -100,4 +108,35 @@ pub async fn check_ollama(state: State<'_, SidecarHandle>) -> Result<OllamaStatu
         .await
         .map_err(|e| format!("parse ollama status: {e}"))?;
     Ok(status)
+}
+
+/// Check if the configured LLM provider is usable enough for user sends.
+#[tauri::command]
+pub async fn check_ai_readiness(state: State<'_, SidecarHandle>) -> Result<AiReadiness, String> {
+    let Some(url) = base_url(&state) else {
+        return Ok(AiReadiness {
+            ready: false,
+            status: "sidecar_offline".into(),
+            detail: "Python sidecar is not ready.".into(),
+            model: "".into(),
+        });
+    };
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!("{url}/config/readiness"))
+        .timeout(std::time::Duration::from_secs(5))
+        .send()
+        .await
+        .map_err(|e| format!("readiness check failed: {e}"))?;
+    if !resp.status().is_success() {
+        return Ok(AiReadiness {
+            ready: false,
+            status: "readiness_error".into(),
+            detail: format!("Readiness check returned {}", resp.status()),
+            model: "".into(),
+        });
+    }
+    resp.json()
+        .await
+        .map_err(|e| format!("parse readiness status: {e}"))
 }

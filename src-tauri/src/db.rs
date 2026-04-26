@@ -21,6 +21,32 @@ pub fn open() -> anyhow::Result<DbHandle> {
 
 fn migrate(conn: &Connection) -> anyhow::Result<()> {
     conn.execute_batch(SCHEMA_V1)?;
+    add_column_if_missing(conn, "chat_messages", "counterpoint", "TEXT")?;
+    add_column_if_missing(conn, "chat_messages", "followup_question", "TEXT")?;
+    add_column_if_missing(conn, "chat_messages", "margin_note", "TEXT")?;
+    Ok(())
+}
+
+fn add_column_if_missing(
+    conn: &Connection,
+    table: &str,
+    column: &str,
+    definition: &str,
+) -> anyhow::Result<()> {
+    let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})"))?;
+    let exists = stmt
+        .query_map([], |row| row.get::<_, String>(1))?
+        .collect::<Result<Vec<_>, _>>()?
+        .iter()
+        .any(|name| name == column);
+
+    if !exists {
+        conn.execute(
+            &format!("ALTER TABLE {table} ADD COLUMN {column} {definition}"),
+            [],
+        )?;
+    }
+
     Ok(())
 }
 
@@ -117,6 +143,9 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     reading_mode    TEXT,
     selection_text  TEXT,
     confidence      TEXT,
+    counterpoint    TEXT,
+    followup_question TEXT,
+    margin_note     TEXT,
     created_at      INTEGER NOT NULL
 );
 
@@ -135,3 +164,180 @@ CREATE INDEX IF NOT EXISTS idx_annotations_paper ON annotations(paper_id, page);
 CREATE INDEX IF NOT EXISTS idx_marginalia_paper ON marginalia(paper_id, page);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(chat_session_id, created_at);
 "#;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn migrated_db() -> Connection {
+        let conn = Connection::open_in_memory().expect("in-memory db");
+        conn.execute_batch("PRAGMA foreign_keys = ON;")
+            .expect("foreign keys on");
+        migrate(&conn).expect("migration succeeds");
+        conn
+    }
+
+    #[test]
+    fn migration_creates_chat_persistence_columns() {
+        let conn = migrated_db();
+        migrate(&conn).expect("migration is idempotent");
+
+        let mut stmt = conn
+            .prepare("PRAGMA table_info(chat_messages)")
+            .expect("table info");
+        let columns = stmt
+            .query_map([], |row| row.get::<_, String>(1))
+            .expect("columns")
+            .collect::<Result<Vec<_>, _>>()
+            .expect("collect columns");
+
+        for expected in [
+            "sources",
+            "reading_mode",
+            "selection_text",
+            "confidence",
+            "counterpoint",
+            "followup_question",
+            "margin_note",
+        ] {
+            assert!(
+                columns.iter().any(|c| c == expected),
+                "missing chat column {expected}"
+            );
+        }
+    }
+
+    #[test]
+    fn smoke_persists_library_annotation_progress_and_session_rows() {
+        let conn = migrated_db();
+
+        conn.execute(
+            "INSERT INTO papers
+                (id, file_path, title, date_added, last_opened, is_indexed)
+             VALUES ('paper-1', '/tmp/paper.pdf', 'Paper One', 10, 11, 1)",
+            [],
+        )
+        .expect("insert paper");
+        conn.execute(
+            "INSERT INTO reading_progress
+                (paper_id, page_number, time_spent_secs, last_visited)
+             VALUES ('paper-1', 3, 42, 12)",
+            [],
+        )
+        .expect("insert reading progress");
+        conn.execute(
+            "INSERT INTO annotations
+                (id, paper_id, page, coords, type, color, selected_text, note_text, created_at)
+             VALUES
+                ('ann-1', 'paper-1', 3, '[[0.1,0.2,0.3,0.4]]',
+                 'highlight', '#FEF08A', 'selected', NULL, 13)",
+            [],
+        )
+        .expect("insert annotation");
+        conn.execute(
+            "INSERT INTO sessions
+                (id, name, research_question, created_at, updated_at)
+             VALUES ('session-1', 'Latency review', 'Which design wins?', 14, 14)",
+            [],
+        )
+        .expect("insert session");
+        conn.execute(
+            "INSERT INTO session_papers (session_id, paper_id, added_at)
+             VALUES ('session-1', 'paper-1', 15)",
+            [],
+        )
+        .expect("link paper to session");
+
+        let paper_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM papers WHERE id = 'paper-1'", [], |row| row.get(0))
+            .expect("paper count");
+        let annotation_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM annotations WHERE paper_id = 'paper-1'", [], |row| {
+                row.get(0)
+            })
+            .expect("annotation count");
+        let session_paper_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM session_papers WHERE session_id = 'session-1'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("session paper count");
+        let reading_secs: i64 = conn
+            .query_row(
+                "SELECT time_spent_secs FROM reading_progress
+                  WHERE paper_id = 'paper-1' AND page_number = 3",
+                [],
+                |row| row.get(0),
+            )
+            .expect("reading progress");
+
+        assert_eq!(paper_count, 1);
+        assert_eq!(annotation_count, 1);
+        assert_eq!(session_paper_count, 1);
+        assert_eq!(reading_secs, 42);
+    }
+
+    #[test]
+    fn smoke_persists_chat_history_with_sources_and_mode_extras() {
+        let conn = migrated_db();
+
+        conn.execute(
+            "INSERT INTO papers (id, file_path, title, date_added)
+             VALUES ('paper-1', '/tmp/paper.pdf', 'Paper One', 10)",
+            [],
+        )
+        .expect("insert paper");
+        conn.execute(
+            "INSERT INTO chat_sessions (id, paper_id, created_at, is_multi_paper)
+             VALUES ('chat-1', 'paper-1', 11, 0)",
+            [],
+        )
+        .expect("insert chat session");
+        conn.execute(
+            "INSERT INTO chat_messages
+                (id, chat_session_id, role, content, sources, reading_mode,
+                 selection_text, confidence, counterpoint, followup_question,
+                 margin_note, created_at)
+             VALUES
+                ('msg-user', 'chat-1', 'user', 'What is the claim?', NULL,
+                 'challenge', 'selected passage', NULL, NULL, NULL, NULL, 12),
+                ('msg-assistant', 'chat-1', 'assistant', 'The claim is grounded.',
+                 '[{\"page\":3,\"score\":0.91}]', 'challenge', NULL, 'high',
+                 'The paper hedges this result.', NULL, NULL, 13)",
+            [],
+        )
+        .expect("insert chat messages");
+
+        let restored: Vec<(String, String, Option<String>, Option<String>)> = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT role, content, sources, counterpoint
+                       FROM chat_messages
+                      WHERE chat_session_id = 'chat-1'
+                      ORDER BY created_at",
+                )
+                .expect("prepare chat query");
+            stmt.query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                    row.get::<_, Option<String>>(3)?,
+                ))
+            })
+            .expect("query chat")
+            .collect::<Result<Vec<_>, _>>()
+            .expect("collect chat")
+        };
+
+        assert_eq!(restored.len(), 2);
+        assert_eq!(restored[0].0, "user");
+        assert_eq!(restored[1].0, "assistant");
+        assert!(restored[1].2.as_deref().unwrap_or("").contains("\"page\":3"));
+        assert_eq!(
+            restored[1].3.as_deref(),
+            Some("The paper hedges this result.")
+        );
+    }
+}

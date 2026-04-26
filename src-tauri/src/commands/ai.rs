@@ -7,6 +7,13 @@ use crate::sidecar::{base_url, SidecarHandle};
 
 static HTTP: std::sync::LazyLock<Client> = std::sync::LazyLock::new(Client::new);
 
+fn now_secs() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0)
+}
+
 // ---------- Ingest ----------
 
 #[derive(Debug, Serialize)]
@@ -46,20 +53,48 @@ pub async fn ingest_paper(
 ) -> Result<IngestResult, String> {
     let url = base_url(&sidecar).ok_or("sidecar not ready")?;
 
-    let _ = app.emit("ingest:progress", serde_json::json!({
-        "paper_id": &paper_id, "step": "starting", "percent": 0
-    }));
+    let _ = app.emit(
+        "ingest:progress",
+        serde_json::json!({
+            "paper_id": &paper_id, "step": "starting", "percent": 0
+        }),
+    );
 
-    let resp = reqwest::Client::new()
+    let request = reqwest::Client::new()
         .post(format!("{url}/ingest"))
         .json(&IngestBody {
             paper_id: paper_id.clone(),
             file_path,
         })
         .timeout(std::time::Duration::from_secs(300))
-        .send()
-        .await
-        .map_err(|e| format!("ingest request failed: {e}"))?;
+        .send();
+
+    tokio::pin!(request);
+    let mut progress_tick = tokio::time::interval(std::time::Duration::from_millis(450));
+
+    let resp = loop {
+        tokio::select! {
+            result = &mut request => {
+                break result.map_err(|e| format!("ingest request failed: {e}"))?;
+            }
+            _ = progress_tick.tick() => {
+                if let Ok(status_resp) = HTTP
+                    .get(format!("{url}/ingest/status/{paper_id}"))
+                    .timeout(std::time::Duration::from_secs(2))
+                    .send()
+                    .await
+                {
+                    if let Ok(status) = status_resp.json::<serde_json::Value>().await {
+                        let _ = app.emit("ingest:progress", serde_json::json!({
+                            "paper_id": &paper_id,
+                            "step": status.get("step").and_then(|v| v.as_str()).unwrap_or("indexing"),
+                            "percent": status.get("percent").and_then(|v| v.as_i64()).unwrap_or(0),
+                        }));
+                    }
+                }
+            }
+        }
+    };
 
     if !resp.status().is_success() {
         let body = resp.text().await.unwrap_or_default();
@@ -90,10 +125,13 @@ pub async fn ingest_paper(
         );
     }
 
-    let _ = app.emit("ingest:complete", serde_json::json!({
-        "paper_id": &paper_id,
-        "chunk_count": result.chunk_count,
-    }));
+    let _ = app.emit(
+        "ingest:complete",
+        serde_json::json!({
+            "paper_id": &paper_id,
+            "chunk_count": result.chunk_count,
+        }),
+    );
 
     Ok(result)
 }
@@ -109,6 +147,151 @@ struct QABody {
     context_paper_ids: Vec<String>,
     context_override: Option<String>,
     top_k: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ChatMessageRecord {
+    pub id: String,
+    pub role: String,
+    pub content: String,
+    pub sources: Option<serde_json::Value>,
+    pub reading_mode: Option<String>,
+    pub selection_text: Option<String>,
+    pub confidence: Option<String>,
+    pub counterpoint: Option<String>,
+    pub followup_question: Option<String>,
+    pub margin_note: Option<String>,
+    pub created_at: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct SaveChatMessage {
+    pub id: String,
+    pub paper_id: String,
+    pub chat_session_id: String,
+    pub role: String,
+    pub content: String,
+    pub sources: Option<serde_json::Value>,
+    pub reading_mode: Option<String>,
+    pub selection_text: Option<String>,
+    pub confidence: Option<String>,
+    pub counterpoint: Option<String>,
+    pub followup_question: Option<String>,
+    pub margin_note: Option<String>,
+}
+
+#[tauri::command]
+pub fn get_chat_messages(
+    paper_id: String,
+    db_state: State<'_, AppState>,
+) -> Result<Vec<ChatMessageRecord>, String> {
+    let db = db_state.db.lock();
+    let mut stmt = db
+        .prepare(
+            "SELECT m.id, m.role, m.content, m.sources, m.reading_mode,
+                    m.selection_text, m.confidence, m.counterpoint,
+                    m.followup_question, m.margin_note, m.created_at
+               FROM chat_messages m
+               JOIN chat_sessions s ON s.id = m.chat_session_id
+              WHERE s.paper_id = ?1 AND s.is_multi_paper = 0
+              ORDER BY m.created_at, m.rowid",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let rows = stmt
+        .query_map([&paper_id], |row| {
+            let sources_raw: Option<String> = row.get(3)?;
+            let sources =
+                sources_raw.and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok());
+            Ok(ChatMessageRecord {
+                id: row.get(0)?,
+                role: row.get(1)?,
+                content: row.get(2)?,
+                sources,
+                reading_mode: row.get(4)?,
+                selection_text: row.get(5)?,
+                confidence: row.get(6)?,
+                counterpoint: row.get(7)?,
+                followup_question: row.get(8)?,
+                margin_note: row.get(9)?,
+                created_at: row.get(10)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(rows)
+}
+
+#[tauri::command]
+pub fn save_chat_message(
+    message: SaveChatMessage,
+    db_state: State<'_, AppState>,
+) -> Result<(), String> {
+    if message.role != "user" && message.role != "assistant" {
+        return Err("invalid chat message role".into());
+    }
+
+    let now = now_secs();
+    let sources = message.sources.as_ref().map(|v| v.to_string());
+    let db = db_state.db.lock();
+
+    db.execute(
+        "INSERT INTO chat_sessions (id, paper_id, created_at, is_multi_paper)
+         VALUES (?1, ?2, ?3, 0)
+         ON CONFLICT(id) DO NOTHING",
+        rusqlite::params![&message.chat_session_id, &message.paper_id, now],
+    )
+    .map_err(|e| e.to_string())?;
+
+    db.execute(
+        "INSERT INTO chat_messages
+            (id, chat_session_id, role, content, sources, reading_mode,
+             selection_text, confidence, counterpoint, followup_question,
+             margin_note, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+         ON CONFLICT(id) DO UPDATE SET
+             content = excluded.content,
+             sources = excluded.sources,
+             reading_mode = excluded.reading_mode,
+             selection_text = excluded.selection_text,
+             confidence = excluded.confidence,
+             counterpoint = excluded.counterpoint,
+             followup_question = excluded.followup_question,
+             margin_note = excluded.margin_note",
+        rusqlite::params![
+            &message.id,
+            &message.chat_session_id,
+            &message.role,
+            &message.content,
+            &sources,
+            &message.reading_mode,
+            &message.selection_text,
+            &message.confidence,
+            &message.counterpoint,
+            &message.followup_question,
+            &message.margin_note,
+            now,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn clear_chat_messages(paper_id: String, db_state: State<'_, AppState>) -> Result<(), String> {
+    let db = db_state.db.lock();
+    db.execute(
+        "DELETE FROM chat_messages
+          WHERE chat_session_id IN (
+            SELECT id FROM chat_sessions WHERE paper_id = ?1 AND is_multi_paper = 0
+          )",
+        [&paper_id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 /// Proxy the QA request to the Python sidecar's SSE /qa endpoint. We read the
@@ -217,7 +400,9 @@ pub async fn generate_marginalia(
 
     // Ensure the sidecar has the page cache for this paper.
     let _ = HTTP
-        .post(format!("{url}/marginalia/cache-pages?paper_id={paper_id}&file_path={file_path}"))
+        .post(format!(
+            "{url}/marginalia/cache-pages?paper_id={paper_id}&file_path={file_path}"
+        ))
         .send()
         .await;
 
@@ -258,8 +443,14 @@ pub async fn generate_marginalia(
                             // Persist to SQLite.
                             let id = uuid::Uuid::new_v4().to_string();
                             let page = note.get("page").and_then(|v| v.as_i64()).unwrap_or(0);
-                            let para = note.get("paragraph_index").and_then(|v| v.as_i64()).unwrap_or(0);
-                            let ntype = note.get("type").and_then(|v| v.as_str()).unwrap_or("restatement");
+                            let para = note
+                                .get("paragraph_index")
+                                .and_then(|v| v.as_i64())
+                                .unwrap_or(0);
+                            let ntype = note
+                                .get("type")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("restatement");
                             let text = note.get("note_text").and_then(|v| v.as_str()).unwrap_or("");
                             let now = std::time::SystemTime::now()
                                 .duration_since(std::time::UNIX_EPOCH)
@@ -277,16 +468,19 @@ pub async fn generate_marginalia(
                             }
 
                             // Relay to frontend.
-                            let _ = app.emit("marginalia:note", serde_json::json!({
-                                "paper_id": &paper_id,
-                                "note": {
-                                    "id": &id,
-                                    "page": page,
-                                    "paragraph_index": para,
-                                    "type": ntype,
-                                    "note_text": text,
-                                }
-                            }));
+                            let _ = app.emit(
+                                "marginalia:note",
+                                serde_json::json!({
+                                    "paper_id": &paper_id,
+                                    "note": {
+                                        "id": &id,
+                                        "page": page,
+                                        "paragraph_index": para,
+                                        "type": ntype,
+                                        "note_text": text,
+                                    }
+                                }),
+                            );
                         }
                     }
                     Some("done") => {
@@ -299,10 +493,13 @@ pub async fn generate_marginalia(
                             );
                         }
                         let count = val.get("total_count").and_then(|v| v.as_i64()).unwrap_or(0);
-                        let _ = app.emit("marginalia:complete", serde_json::json!({
-                            "paper_id": &paper_id,
-                            "total_count": count,
-                        }));
+                        let _ = app.emit(
+                            "marginalia:complete",
+                            serde_json::json!({
+                                "paper_id": &paper_id,
+                                "total_count": count,
+                            }),
+                        );
                     }
                     _ => {}
                 }
@@ -400,10 +597,13 @@ pub async fn summarize_paper(
                 match val.get("type").and_then(|t| t.as_str()) {
                     Some("token") => {
                         if let Some(tok) = val.get("token").and_then(|t| t.as_str()) {
-                            let _ = app.emit("summary:token", serde_json::json!({
-                                "paper_id": &paper_id,
-                                "token": tok,
-                            }));
+                            let _ = app.emit(
+                                "summary:token",
+                                serde_json::json!({
+                                    "paper_id": &paper_id,
+                                    "token": tok,
+                                }),
+                            );
                         }
                     }
                     Some("done") => {

@@ -32,6 +32,7 @@ type ChatState = {
   activePaperId: string | null;
 
   setActivePaper: (paperId: string | null) => void;
+  setMessagesForPaper: (paperId: string, messages: ChatMessage[]) => void;
   setReadingMode: (mode: ReadingMode) => void;
   addMessage: (msg: ChatMessage) => void;
   appendToken: (id: string, token: string) => void;
@@ -55,6 +56,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setActivePaper: (paperId) => set({ activePaperId: paperId }),
+
+  setMessagesForPaper: (paperId, messages) =>
+    set((s) => ({
+      messagesByPaper: {
+        ...s.messagesByPaper,
+        [paperId]: messages,
+      },
+    })),
 
   setReadingMode: (mode) => set({ readingMode: mode }),
 

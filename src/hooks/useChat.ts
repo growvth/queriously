@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useRef } from "react";
 import { useChatStore, type ChatMessage } from "../store/chatStore";
 import { usePdfStore } from "../store/pdfStore";
+import { api } from "../lib/tauri";
 
 /**
  * Manages the chat lifecycle: sends questions via the ask_question Tauri
@@ -20,6 +21,14 @@ export function useChat() {
   // Track the current streaming message id so event listeners can target it.
   const streamIdRef = useRef<string | null>(null);
   const sessionIdRef = useRef<string>("default");
+  const paperIdRef = useRef<string | null>(null);
+  const streamModeRef = useRef<typeof readingMode>("explain");
+
+  useEffect(() => {
+    const paperId = paper?.id ?? null;
+    paperIdRef.current = paperId;
+    sessionIdRef.current = paperId ? `paper:${paperId}` : "default";
+  }, [paper?.id]);
 
   // Set up global Tauri event listeners once.
   useEffect(() => {
@@ -43,14 +52,32 @@ export function useChat() {
     }>("ai:done", (e) => {
       const id = streamIdRef.current;
       if (id && e.payload.chat_session_id === sessionIdRef.current) {
-        finalizeMessage(id, {
+        const finalMessage: Partial<ChatMessage> = {
           content: e.payload.answer || "",
           sources: e.payload.sources,
           confidence: e.payload.confidence as any,
           counterpoint: e.payload.counterpoint,
           followup_question: e.payload.followup_question,
           margin_note: e.payload.margin_note,
-        });
+        };
+        finalizeMessage(id, finalMessage);
+        const paperId = paperIdRef.current;
+        if (paperId) {
+          void api.saveChatMessage({
+            id,
+            paper_id: paperId,
+            chat_session_id: sessionIdRef.current,
+            role: "assistant",
+            content: finalMessage.content ?? "",
+            sources: finalMessage.sources ?? null,
+            reading_mode: streamModeRef.current,
+            selection_text: null,
+            confidence: finalMessage.confidence ?? null,
+            counterpoint: finalMessage.counterpoint ?? null,
+            followup_question: finalMessage.followup_question ?? null,
+            margin_note: finalMessage.margin_note ?? null,
+          });
+        }
         streamIdRef.current = null;
         setLoading(false);
       }
@@ -87,6 +114,20 @@ export function useChat() {
       reading_mode: readingMode,
     };
     addMessage(userMsg);
+    void api.saveChatMessage({
+      id: userId,
+      paper_id: paper.id,
+      chat_session_id: sessionIdRef.current,
+      role: "user",
+      content: question,
+      sources: null,
+      reading_mode: readingMode,
+      selection_text: contextOverride ?? null,
+      confidence: null,
+      counterpoint: null,
+      followup_question: null,
+      margin_note: null,
+    });
 
     // Prepare assistant placeholder.
     const assistantId = crypto.randomUUID();
@@ -99,6 +140,7 @@ export function useChat() {
     };
     addMessage(assistantMsg);
     streamIdRef.current = assistantId;
+    streamModeRef.current = readingMode;
     setLoading(true);
 
     try {

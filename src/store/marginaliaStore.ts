@@ -18,12 +18,14 @@ type MarginaliaState = {
   visible: boolean;
   filterType: NoteType | null;
   isGenerating: boolean;
+  error: string | null;
 
   setNotes: (notes: MarginaliaNote[]) => void;
   addNote: (note: MarginaliaNote) => void;
   setVisible: (v: boolean) => void;
   setFilterType: (t: NoteType | null) => void;
   setGenerating: (v: boolean) => void;
+  setError: (error: string | null) => void;
   clear: () => void;
 };
 
@@ -32,11 +34,13 @@ export const useMarginaliaStore = create<MarginaliaState>((set) => ({
   visible: true,
   filterType: null,
   isGenerating: false,
+  error: null,
 
   setNotes: (notes) => set({ notes }),
-  addNote: (note) => set((s) => ({ notes: [...s.notes, note] })),
+  addNote: (note) => set((s) => ({ notes: [...s.notes, note], error: null })),
   setVisible: (v) => set({ visible: v }),
   setFilterType: (t) => set({ filterType: t }),
-  setGenerating: (v) => set({ isGenerating: v }),
-  clear: () => set({ notes: [], isGenerating: false }),
+  setGenerating: (v) => set(v ? { isGenerating: v, error: null } : { isGenerating: v }),
+  setError: (error) => set({ error, isGenerating: false }),
+  clear: () => set({ notes: [], isGenerating: false, error: null }),
 }));

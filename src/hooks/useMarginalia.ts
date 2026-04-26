@@ -13,6 +13,7 @@ export function useMarginalia() {
   const setNotes = useMarginaliaStore((s) => s.setNotes);
   const addNote = useMarginaliaStore((s) => s.addNote);
   const setGenerating = useMarginaliaStore((s) => s.setGenerating);
+  const setError = useMarginaliaStore((s) => s.setError);
   const clear = useMarginaliaStore((s) => s.clear);
 
   // Load existing notes when paper changes.
@@ -53,7 +54,7 @@ export function useMarginalia() {
       .generateMarginalia(paper.id, paper.file_path)
       .catch((err) => {
         console.error("marginalia generation failed:", err);
-        setGenerating(false);
+        setError(String(err));
       });
   }
 

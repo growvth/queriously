@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSettingsStore } from "../store/settingsStore";
 import { api } from "../lib/tauri";
 
@@ -14,6 +14,7 @@ export function useLlmConfig() {
   const llmBaseUrl = useSettingsStore((s) => s.llmBaseUrl);
   const setLlmApiKey = useSettingsStore((s) => s.setLlmApiKey);
   const setLlmApiKeyLoaded = useSettingsStore((s) => s.setLlmApiKeyLoaded);
+  const lastSyncedApiKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -22,10 +23,16 @@ export function useLlmConfig() {
       try {
         const stored = await api.getLlmApiKey();
         if (!cancelled) {
-          setLlmApiKey(stored ?? "");
+          const key = stored ?? "";
+          lastSyncedApiKeyRef.current = key;
+          setLlmApiKey(key);
         }
-      } catch {
+      } catch (err) {
+        console.warn("failed to load LLM API key", err);
         // Keep local memory empty; onboarding/settings can still continue.
+        // Do not mark the empty value as synced or the next effect may delete
+        // a keychain item that merely failed to read.
+        lastSyncedApiKeyRef.current = null;
       } finally {
         if (!cancelled) {
           setLlmApiKeyLoaded(true);
@@ -38,6 +45,21 @@ export function useLlmConfig() {
       cancelled = true;
     };
   }, [setLlmApiKey, setLlmApiKeyLoaded]);
+
+  useEffect(() => {
+    if (!llmApiKeyLoaded) return;
+    if (lastSyncedApiKeyRef.current === llmApiKey) return;
+    if (lastSyncedApiKeyRef.current === null && !llmApiKey) return;
+
+    api
+      .setLlmApiKey(llmApiKey || null)
+      .then(() => {
+        lastSyncedApiKeyRef.current = llmApiKey;
+      })
+      .catch((err) => {
+        console.warn("failed to persist LLM API key", err);
+      });
+  }, [llmApiKey, llmApiKeyLoaded]);
 
   useEffect(() => {
     let cancelled = false;

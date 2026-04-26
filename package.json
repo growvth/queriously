@@ -9,6 +9,8 @@
     "dev:marketing": "cd apps/marketing && npm run dev",
     "build:marketing": "cd apps/marketing && npm run build",
     "preview": "vite preview",
+    "test:python": "python/.venv/bin/python3 -m unittest discover -s python/tests",
+    "test:rust": "cd src-tauri && CARGO_TARGET_DIR=/tmp/queriously-cargo-check cargo test",
     "tauri": "tauri",
     "tauri:build": "tauri build && rm -rf /Applications/Queriously.app && cp -R src-tauri/target/release/bundle/macos/Queriously.app /Applications/Queriously.app && echo '✓ Installed to /Applications/Queriously.app'"
   },
