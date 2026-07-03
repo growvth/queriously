@@ -405,6 +405,158 @@ pub async fn ask_question(
 
 // ---------- Marginalia ----------
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MarginaliaMutation {
+    pub paper_id: String,
+    pub page: i64,
+    pub paragraph_index: i64,
+    pub r#type: String,
+    pub note_text: String,
+    pub ref_page: Option<i64>,
+}
+
+fn marginalia_row_to_json(row: &rusqlite::Row<'_>) -> rusqlite::Result<serde_json::Value> {
+    Ok(serde_json::json!({
+        "id": row.get::<_, String>(0)?,
+        "page": row.get::<_, i64>(1)?,
+        "paragraph_index": row.get::<_, i64>(2)?,
+        "type": row.get::<_, String>(3)?,
+        "note_text": row.get::<_, String>(4)?,
+        "ref_page": row.get::<_, Option<i64>>(5)?,
+        "is_edited": row.get::<_, i64>(6)? != 0,
+        "edited_text": row.get::<_, Option<String>>(7)?,
+    }))
+}
+
+fn get_marginalia_by_id(db: &rusqlite::Connection, id: &str) -> Result<serde_json::Value, String> {
+    db.query_row(
+        "SELECT id, page, paragraph_index, type, note_text, ref_page,
+                is_edited, edited_text
+           FROM marginalia
+          WHERE id = ?1 AND is_deleted = 0",
+        [id],
+        marginalia_row_to_json,
+    )
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn create_marginalia_note(
+    note: MarginaliaMutation,
+    db_state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let text = note.note_text.trim();
+    if text.is_empty() {
+        return Err("margin note text is required".into());
+    }
+
+    let id = uuid::Uuid::new_v4().to_string();
+    let now = now_secs();
+    let db = db_state.db.lock();
+    db.execute(
+        "INSERT INTO marginalia
+            (id, paper_id, page, paragraph_index, type, note_text, ref_page,
+             is_edited, edited_text, generated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0, NULL, ?8)",
+        rusqlite::params![
+            &id,
+            &note.paper_id,
+            note.page,
+            note.paragraph_index,
+            &note.r#type,
+            text,
+            &note.ref_page,
+            now,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    get_marginalia_by_id(&db, &id)
+}
+
+#[tauri::command]
+pub fn update_marginalia_note(
+    id: String,
+    note_text: String,
+    note_type: Option<String>,
+    db_state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let text = note_text.trim();
+    if text.is_empty() {
+        return Err("margin note text is required".into());
+    }
+
+    let db = db_state.db.lock();
+    db.execute(
+        "UPDATE marginalia
+            SET edited_text = ?2,
+                is_edited = 1,
+                type = COALESCE(?3, type)
+          WHERE id = ?1 AND is_deleted = 0",
+        rusqlite::params![&id, text, &note_type],
+    )
+    .map_err(|e| e.to_string())?;
+
+    get_marginalia_by_id(&db, &id)
+}
+
+#[tauri::command]
+pub fn delete_marginalia_note(id: String, db_state: State<'_, AppState>) -> Result<(), String> {
+    let db = db_state.db.lock();
+    db.execute("UPDATE marginalia SET is_deleted = 1 WHERE id = ?1", [&id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn promote_marginalia_to_annotation(
+    id: String,
+    db_state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let db = db_state.db.lock();
+    let (paper_id, page, note_text): (String, i64, String) = db
+        .query_row(
+            "SELECT paper_id, page, COALESCE(edited_text, note_text)
+               FROM marginalia
+              WHERE id = ?1 AND is_deleted = 0",
+            [&id],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .map_err(|e| e.to_string())?;
+
+    let annotation_id = uuid::Uuid::new_v4().to_string();
+    let now = now_secs();
+    db.execute(
+        "INSERT INTO annotations
+            (id, paper_id, session_id, page, coords, type, color,
+             selected_text, note_text, created_at, updated_at)
+         VALUES (?1, ?2, NULL, ?3, ?4, 'sticky', NULL, NULL, ?5, ?6, NULL)",
+        rusqlite::params![
+            &annotation_id,
+            &paper_id,
+            page,
+            "[[0.04,0.04,0.08,0.08]]",
+            &note_text,
+            now,
+        ],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(serde_json::json!({
+        "id": annotation_id,
+        "paper_id": paper_id,
+        "session_id": serde_json::Value::Null,
+        "page": page,
+        "coords": "[[0.04,0.04,0.08,0.08]]",
+        "type": "sticky",
+        "color": serde_json::Value::Null,
+        "selected_text": serde_json::Value::Null,
+        "note_text": note_text,
+        "created_at": now,
+        "updated_at": serde_json::Value::Null,
+    }))
+}
+
 /// Trigger marginalia generation for a paper. The sidecar streams notes as SSE
 /// events; Rust persists each one to SQLite and re-emits it to the frontend.
 #[tauri::command]
@@ -547,18 +699,7 @@ pub fn get_marginalia(
         .map_err(|e| e.to_string())?;
 
     let rows = stmt
-        .query_map([&paper_id], |row| {
-            Ok(serde_json::json!({
-                "id": row.get::<_, String>(0)?,
-                "page": row.get::<_, i64>(1)?,
-                "paragraph_index": row.get::<_, i64>(2)?,
-                "type": row.get::<_, String>(3)?,
-                "note_text": row.get::<_, String>(4)?,
-                "ref_page": row.get::<_, Option<i64>>(5)?,
-                "is_edited": row.get::<_, i64>(6)? != 0,
-                "edited_text": row.get::<_, Option<String>>(7)?,
-            }))
-        })
+        .query_map([&paper_id], |row| marginalia_row_to_json(row))
         .map_err(|e| e.to_string())?
         .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;

@@ -70,11 +70,16 @@ better reliability, and richer cross-paper behavior.
 
 ### P0: Make v0.1 Trustworthy
 
-These are the highest-leverage tasks before showing the app to more users.
+Status: done as of April 2026.
 
-- **Expand smoke tests into end-to-end app flows.** Current smoke coverage
-  checks DB migrations, library/annotation/progress/session/chat persistence,
-  and sidecar health/readiness. Next: GUI-level open-PDF and retrieval flows.
+The app has been manually verified across the core reader loop: open PDF,
+indexing, AI readiness, source-grounded chat, persisted chat, annotations,
+marginalia state, and packaged build. Automated smoke coverage checks DB
+migrations, library/annotation/progress/session/chat persistence, sidecar
+health/readiness, QA retrieval context, and evidence-quality behavior.
+
+GUI-level open-PDF and retrieval flows would still be useful, but they are no
+longer blocking P0. Track them under production-quality test coverage.
 
 ### P1: Finish the Single-Paper Research Loop
 
@@ -150,6 +155,8 @@ These are launch-quality requirements rather than core product discovery.
   it instead of failing.
 - **Accessibility pass.** Keyboard navigation, focus states, screen reader
   labels, contrast, and reduced-motion behavior.
+- **GUI smoke tests.** Automate open-PDF, indexing, chat, citation, annotation,
+  and restart persistence flows once the app test harness is stable.
 - **Windows support.** Defer until macOS build and sidecar packaging are solid.
 
 ## Product Judgment

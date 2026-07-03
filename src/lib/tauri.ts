@@ -82,6 +82,20 @@ export const api = {
     invoke<void>("generate_marginalia", { paperId, filePath }),
   getMarginalia: (paperId: string) =>
     invoke<any[]>("get_marginalia", { paperId }),
+  createMarginaliaNote: (note: {
+    paper_id: string;
+    page: number;
+    paragraph_index: number;
+    type: string;
+    note_text: string;
+    ref_page?: number | null;
+  }) => invoke<any>("create_marginalia_note", { note }),
+  updateMarginaliaNote: (id: string, noteText: string, noteType?: string | null) =>
+    invoke<any>("update_marginalia_note", { id, noteText, noteType }),
+  deleteMarginaliaNote: (id: string) =>
+    invoke<void>("delete_marginalia_note", { id }),
+  promoteMarginaliaToAnnotation: (id: string) =>
+    invoke<any>("promote_marginalia_to_annotation", { id }),
   updateReadingProgress: (paperId: string, page: number, deltaSecs: number) =>
     invoke<void>("update_reading_progress", { paperId, page, deltaSecs }),
   getReadingProgress: (paperId: string) =>

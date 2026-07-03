@@ -39,9 +39,7 @@ export function MarginaliaLayer({ page }: Props) {
       {pageNotes.map((n) => (
         <MarginaliaNoteCard
           key={n.id}
-          type={n.type}
-          text={n.is_edited && n.edited_text ? n.edited_text : n.note_text}
-          refPage={n.ref_page}
+          note={n}
           onJumpToPage={jumpToPage}
         />
       ))}

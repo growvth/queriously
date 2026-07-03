@@ -1,3 +1,4 @@
+import { StickyNote } from "lucide-react";
 import { useAnnotationStore } from "../../store/annotationStore";
 import { mergeNormalizedRects } from "../../lib/selectionRects";
 
@@ -13,9 +14,7 @@ type Props = {
  */
 export function AnnotationLayer({ page }: Props) {
   const annotations = useAnnotationStore((s) => s.annotations);
-  const pageAnnotations = annotations.filter(
-    (a) => a.page === page && a.type === "highlight",
-  );
+  const pageAnnotations = annotations.filter((a) => a.page === page);
 
   if (pageAnnotations.length === 0) return null;
 
@@ -38,6 +37,20 @@ export function AnnotationLayer({ page }: Props) {
         const rects = mergeNormalizedRects(
           rectsRaw.filter((coords) => Array.isArray(coords) && coords.length === 4) as [number, number, number, number][],
         );
+
+        if (a.type === "sticky") {
+          const [x1, y1] = rects[0] ?? [0.04, 0.04];
+          return (
+            <div
+              key={a.id}
+              className="absolute pointer-events-auto flex items-center justify-center w-6 h-6 rounded-md bg-accent-secondary/90 text-white shadow-sm cursor-pointer"
+              title={a.note_text || "Sticky note"}
+              style={{ left: `${x1 * 100}%`, top: `${y1 * 100}%` }}
+            >
+              <StickyNote className="w-3.5 h-3.5" />
+            </div>
+          );
+        }
 
         return (
           <div key={a.id} title={a.note_text || a.selected_text || "Highlight"}>
